@@ -11,10 +11,28 @@ const shuffleArray = (items) => {
   return arr;
 };
 
+import { englishQuestions } from "./data/englishQuestions";
+
 // ─── Dynamic Question Generator ──────────────────────────────────────────────
-const generateQuestions = (difficulty, numQuestions) => {
-  const questions = [];
+const generateQuestions = (difficulty, numQuestions, subject = "Math") => {
   const players = [[], []];
+
+  if (subject === "English") {
+    for (let p = 0; p < 2; p++) {
+      let pQs = [];
+      while (pQs.length < numQuestions) {
+        pQs = pQs.concat(shuffleArray([...englishQuestions]));
+      }
+      players[p] = pQs.slice(0, numQuestions).map(q => {
+        const base = { ...q, q: q.question };
+        if (q.type === "spelling_tap") {
+          return { ...base, options: shuffleArray([...q.options]) };
+        }
+        return { ...base, options: shuffleArray([...q.options]) };
+      });
+    }
+    return players;
+  }
 
   for (let i = 0; i < numQuestions; i++) {
     for (let p = 0; p < 2; p++) {
@@ -89,7 +107,7 @@ const generateQuestions = (difficulty, numQuestions) => {
   return players;
 };
 
-const createQuestionBank = (difficulty, len) => generateQuestions(difficulty, len);
+const createQuestionBank = (difficulty, len, subject = "Math") => generateQuestions(difficulty, len, subject);
 
 const pickRandom = (items) => items[Math.floor(Math.random() * items.length)];
 const CORRECT_CHEERS = ["Great job!", "Awesome answer!", "You got it!", "Brilliant!", "Super smart!"];
@@ -312,9 +330,24 @@ function RaceTrack({ p1Progress, p2Progress, p1Name, p2Name, total, p1Vehicle, p
 
 // ─── Player Panel ─────────────────────────────────────────────────────────────
 function PlayerPanel({ player, name, onNameChange, question, onAnswer, feedback, answered, canAnswer, streak, resultBanner, accent, vehicle, onVehicleChange, powerup }) {
+  const [typedLetters, setTypedLetters] = useState([]);
+  useEffect(() => { setTypedLetters([]); }, [question]);
+
   if (!question) return null;
-  const labelColors = ["#FFB800", "#A78BFA"];
+  const labelColors = ["#FFB800", "#A78BFA", "#00C9A7", "#FF3D6E"];
   const pInfo = powerup ? POWERUPS[powerup] : null;
+
+  const handleSpellingTap = (char, index) => {
+    if (answered || !canAnswer) return;
+    const newTyped = [...typedLetters, { char, index }];
+    setTypedLetters(newTyped);
+
+    // Check if word is complete
+    if (newTyped.length === question.answer.length) {
+      const spelledWord = newTyped.map(t => t.char).join("");
+      onAnswer(spelledWord);
+    }
+  };
 
   return (
     <div style={{
@@ -429,49 +462,101 @@ function PlayerPanel({ player, name, onNameChange, question, onAnswer, feedback,
         padding: "20px 12px", textAlign: "center",
         border: "1px solid rgba(255,255,255,0.06)"
       }}>
-        <div style={{ color: "rgba(255,255,255,0.45)", fontFamily: "Nunito, sans-serif", fontSize: 12, marginBottom: 6 }}>What is…</div>
-        <div style={{ color: "white", fontFamily: "'Fredoka One', cursive", fontSize: "clamp(32px,4.5vw,44px)", lineHeight: 1.1 }}>
+        {question.image && (
+          <div style={{ fontSize: "64px", marginBottom: "10px", lineHeight: 1 }}>
+            {question.image}
+          </div>
+        )}
+        <div style={{ color: "rgba(255,255,255,0.45)", fontFamily: "Nunito, sans-serif", fontSize: 12, marginBottom: 6 }}>
+          {question.type === "grammar_have_has" ? "Lengkapi titik-titik di bawah ini:" : question.type ? "Question:" : "What is…"}
+        </div>
+        <div style={{ color: "white", fontFamily: "'Fredoka One', cursive", fontSize: question.type ? "clamp(20px,2.8vw,30px)" : "clamp(32px,4.5vw,44px)", lineHeight: 1.2 }}>
           {question.q}
         </div>
       </div>
 
       {/* Buttons */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {question.options.map((opt, i) => {
-          const isCorrect = opt === question.answer;
-          const isChosen = feedback === opt;
-          let bg = "rgba(255,255,255,0.09)";
-          let border = `2px solid ${accent}2a`;
-          let icon = null;
-          if (isChosen) {
-            bg = isCorrect ? "rgba(0,210,140,0.28)" : "rgba(255,61,110,0.28)";
-            border = isCorrect ? "2px solid #00D28C" : "2px solid #FF3D6E";
-            icon = isCorrect ? "✅" : "❌";
-          }
-          return (
-            <button key={opt} disabled={answered || !canAnswer} onClick={() => !answered && canAnswer && onAnswer(opt)}
-              style={{
-                background: bg, border, borderRadius: 16,
-                padding: "14px 16px", cursor: answered || !canAnswer ? "default" : "pointer",
-                display: "flex", alignItems: "center", gap: 10,
-                transform: isChosen ? "scale(0.97)" : "scale(1)",
-                transition: "all 0.18s ease", outline: "none", width: "100%",
-                opacity: canAnswer ? 1 : 0.65
-              }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                background: `${labelColors[i]}1a`, border: `2px solid ${labelColors[i]}`,
+      {question.type === "spelling_tap" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Tapped Letters Display */}
+          <div style={{
+            display: "flex", gap: 8, justifyContent: "center", minHeight: 48,
+            borderBottom: "2px dashed rgba(255,255,255,0.2)", paddingBottom: 10
+          }}>
+            {Array.from({ length: question.answer.length }).map((_, i) => (
+              <div key={i} style={{
+                width: 40, height: 48, borderRadius: 8, background: "rgba(255,255,255,0.1)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "'Fredoka One', cursive", fontSize: 17, color: labelColors[i]
-              }}>{i === 0 ? "A" : "B"}</div>
-              <span style={{ color: "white", fontFamily: "'Fredoka One', cursive", fontSize: "clamp(24px,3.5vw,34px)", flex: 1, textAlign: "center" }}>
-                {opt}
-              </span>
-              {icon && <span style={{ fontSize: 22 }}>{icon}</span>}
-            </button>
-          );
-        })}
-      </div>
+                fontSize: 28, color: "white", fontFamily: "'Fredoka One', cursive",
+                border: `1px solid ${accent}66`
+              }}>
+                {typedLetters[i] ? typedLetters[i].char : ""}
+              </div>
+            ))}
+          </div>
+          {/* Letter Options */}
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            {question.options.map((char, i) => {
+              const isTapped = typedLetters.some(t => t.index === i);
+              return (
+                <button key={`${char}-${i}`} disabled={isTapped || answered || !canAnswer}
+                  onClick={() => handleSpellingTap(char, i)}
+                  style={{
+                    width: 50, height: 50, borderRadius: 12,
+                    background: isTapped ? "rgba(0,0,0,0.2)" : `${accent}33`,
+                    border: `2px solid ${isTapped ? "transparent" : accent}`,
+                    color: isTapped ? "rgba(255,255,255,0.2)" : "white",
+                    fontFamily: "'Fredoka One', cursive", fontSize: 24,
+                    cursor: (isTapped || answered || !canAnswer) ? "default" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    opacity: (answered || !canAnswer) && !isTapped ? 0.65 : 1
+                  }}>
+                  {char}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {question.options.map((opt, i) => {
+            const isCorrect = opt === question.answer;
+            const isChosen = feedback === opt;
+            let bg = "rgba(255,255,255,0.09)";
+            let border = `2px solid ${accent}2a`;
+            let icon = null;
+            if (isChosen) {
+              bg = isCorrect ? "rgba(0,210,140,0.28)" : "rgba(255,61,110,0.28)";
+              border = isCorrect ? "2px solid #00D28C" : "2px solid #FF3D6E";
+              icon = isCorrect ? "✅" : "❌";
+            }
+            return (
+              <button key={opt} disabled={answered || !canAnswer} onClick={() => !answered && canAnswer && onAnswer(opt)}
+                style={{
+                  background: bg, border, borderRadius: 16,
+                  padding: "14px 16px", cursor: answered || !canAnswer ? "default" : "pointer",
+                  display: "flex", alignItems: "center", gap: 10,
+                  transform: isChosen ? "scale(0.97)" : "scale(1)",
+                  transition: "all 0.18s ease", outline: "none", width: "100%",
+                  opacity: canAnswer ? 1 : 0.65
+                }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                  background: `${labelColors[i % labelColors.length]}1a`, border: `2px solid ${labelColors[i % labelColors.length]}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "'Fredoka One', cursive", fontSize: 17, color: labelColors[i % labelColors.length]
+                }}>
+                  {["A", "B", "C", "D"][i] || "-"}
+                </div>
+                <span style={{ color: "white", fontFamily: "'Fredoka One', cursive", fontSize: "clamp(24px,3.5vw,34px)", flex: 1, textAlign: "center" }}>
+                  {opt}
+                </span>
+                {icon && <span style={{ fontSize: 22 }}>{icon}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Feedback */}
       {feedback !== null && (
@@ -659,9 +744,10 @@ function TieBanner({ p1Name, p2Name, score, onRestart }) {
 
 export default function RacingGame() {
   const [difficulty, setDifficulty] = useState("Easy");
+  const [subject, setSubject] = useState("Math");
   const [theme, setTheme] = useState("space");
   const [isSinglePlayer, setIsSinglePlayer] = useState(false);
-  const [questionBank, setQuestionBank] = useState(() => createQuestionBank(difficulty, 10));
+  const [questionBank, setQuestionBank] = useState(() => createQuestionBank(difficulty, 10, "Math"));
   const [questionIndex, setQuestionIndex] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [endReason, setEndReason] = useState(null);
@@ -898,7 +984,7 @@ export default function RacingGame() {
   const restart = () => {
     clearInterval(timerRef.current);
     clearTimeout(cheerTimeoutRef.current);
-    setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS));
+    setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, subject));
     setQuestionIndex(0); setP1Progress(0); setP2Progress(0);
     setP1Feedback(null); setP2Feedback(null);
     setP1Streak(0); setP2Streak(0);
@@ -945,17 +1031,37 @@ export default function RacingGame() {
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
             <div style={{
               fontSize: "clamp(22px, 3.2vw, 36px)",
-              background: "linear-gradient(135deg, #FF3D6E, #FF9A3C)",
+              backgroundImage: subject === "Math"
+                ? "linear-gradient(135deg, #FF3D6E, #FF9A3C)"
+                : "linear-gradient(135deg, #A78BFA, #60A5FA)",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-              filter: "drop-shadow(0 2px 8px rgba(255,61,110,0.3))"
-            }}>🏎️ Math Race!</div>
+              backgroundClip: "text", color: "transparent",
+              filter: subject === "Math"
+                ? "drop-shadow(0 2px 8px rgba(255,61,110,0.3))"
+                : "drop-shadow(0 2px 8px rgba(167,139,250,0.3))"
+            }}>🏎️ {subject} Race!</div>
 
             {!gameStarted && !gameOver && (
               <div style={{ display: "flex", gap: 10 }}>
+                {/* Subject Selector */}
+                <div style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, display: "flex", border: "1px solid rgba(255,255,255,0.13)" }}>
+                  {["Math", "English"].map(s => (
+                    <button key={s} onClick={() => { setSubject(s); setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, s)); }}
+                      style={{
+                        background: subject === s ? "rgba(255,255,255,0.15)" : "transparent",
+                        border: "none", borderRadius: 8, padding: "6px 14px",
+                        color: subject === s ? "white" : "rgba(255,255,255,0.5)",
+                        fontFamily: "Nunito, sans-serif", fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
+                      }}>
+                      {s === "Math" ? "🔢 " : "🔤 "}{s}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Difficulty Selector */}
                 <div style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, display: "flex", border: "1px solid rgba(255,255,255,0.13)" }}>
-                  {["Easy", "Medium", "Hard"].map(d => (
-                    <button key={d} onClick={() => { setDifficulty(d); setQuestionBank(createQuestionBank(d, TOTAL_QUESTIONS)); }}
+                  {(subject === "Math" ? ["Easy", "Medium", "Hard"] : ["Easy"]).map(d => (
+                    <button key={d} onClick={() => { setDifficulty(d); setQuestionBank(createQuestionBank(d, TOTAL_QUESTIONS, subject)); }}
                       style={{
                         background: difficulty === d ? "rgba(255,255,255,0.15)" : "transparent",
                         border: "none", borderRadius: 8, padding: "6px 14px",
