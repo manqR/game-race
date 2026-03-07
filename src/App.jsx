@@ -12,100 +12,39 @@ const shuffleArray = (items) => {
 };
 
 import { englishQuestions } from "./data/englishQuestions";
+import { mathQuestions } from "./data/mathQuestions";
 
-// ─── Dynamic Question Generator ──────────────────────────────────────────────
+// ─── Question Generator ───────────────────────────────────────────────────────
 const generateQuestions = (difficulty, numQuestions, subject = "Math") => {
   const players = [[], []];
+  const diffLower = difficulty.toLowerCase();
 
-  if (subject === "English") {
-    for (let p = 0; p < 2; p++) {
-      let pQs = [];
-      while (pQs.length < numQuestions) {
-        pQs = pQs.concat(shuffleArray([...englishQuestions]));
-      }
-      players[p] = pQs.slice(0, numQuestions).map(q => {
-        const base = { ...q, q: q.question };
-        if (q.type === "spelling_tap") {
-          return { ...base, options: shuffleArray([...q.options]) };
-        }
-        return { ...base, options: shuffleArray([...q.options]) };
-      });
-    }
-    return players;
+  // Choose the right pool based on subject
+  const pool = subject === "English" ? englishQuestions : mathQuestions;
+  let filteredQs = pool.filter(q => q.level === diffLower);
+
+  // Fallback: if nothing at this level, use easy
+  if (filteredQs.length === 0) {
+    filteredQs = pool.filter(q => q.level === "easy");
+    if (filteredQs.length === 0) filteredQs = pool;
   }
 
-  for (let i = 0; i < numQuestions; i++) {
-    for (let p = 0; p < 2; p++) {
-      let num1, num2, op, ans, qStr;
-      const r = Math.random();
-
-      if (difficulty === "Easy") {
-        // Grade 1: + and -, 1 to 10
-        op = r > 0.5 ? "+" : "−";
-        if (op === "+") {
-          num1 = Math.floor(Math.random() * 9) + 1; // 1 to 9
-          num2 = Math.floor(Math.random() * (10 - num1)); // ensure sum <= 10
-        } else {
-          num1 = Math.floor(Math.random() * 9) + 2; // 2 to 10
-          num2 = Math.floor(Math.random() * (num1 - 1)) + 1; // ensure result >= 1
-        }
-      } else if (difficulty === "Medium") {
-        // Grade 2: +, -, maybe *, numbers up to 20
-        if (r < 0.4) op = "+";
-        else if (r < 0.8) op = "−";
-        else op = "×";
-
-        if (op === "+") {
-          num1 = Math.floor(Math.random() * 15) + 3;
-          num2 = Math.floor(Math.random() * 15) + 3;
-        } else if (op === "−") {
-          num1 = Math.floor(Math.random() * 15) + 10;
-          num2 = Math.floor(Math.random() * (num1 - 2)) + 2;
-        } else { // ×
-          num1 = Math.floor(Math.random() * 5) + 2; // 2 to 6
-          num2 = Math.floor(Math.random() * 5) + 2;
-        }
-      } else {
-        // Hard: Grade 3/4. Mixed ops up to 100 or 10x10. division too
-        const ops = ["+", "−", "×", "÷"];
-        op = ops[Math.floor(Math.random() * ops.length)];
-
-        if (op === "+") {
-          num1 = Math.floor(Math.random() * 40) + 10;
-          num2 = Math.floor(Math.random() * 40) + 10;
-        } else if (op === "−") {
-          num1 = Math.floor(Math.random() * 50) + 20;
-          num2 = Math.floor(Math.random() * 20) + 10;
-        } else if (op === "×") {
-          num1 = Math.floor(Math.random() * 8) + 3;
-          num2 = Math.floor(Math.random() * 8) + 3;
-        } else { // ÷
-          num2 = Math.floor(Math.random() * 8) + 2; // divisor
-          ans = Math.floor(Math.random() * 9) + 2; // quotient
-          num1 = num2 * ans; // dividend
-        }
-      }
-
-      if (op === "+") ans = num1 + num2;
-      else if (op === "−") ans = num1 - num2;
-      else if (op === "×") ans = num1 * num2;
-      // division answer is pre-calculated
-
-      qStr = `${num1} ${op} ${num2} = ?`;
-
-      // Generate a wrong option
-      let wrongAns;
-      do {
-        let errOffset = Math.floor(Math.random() * 3) + 1;
-        wrongAns = Math.random() > 0.5 ? ans + errOffset : ans - errOffset;
-      } while (wrongAns === ans || wrongAns < 0);
-
-      const options = shuffleArray([ans.toString(), wrongAns.toString()]);
-      players[p].push({ q: qStr, options, answer: ans.toString() });
+  for (let p = 0; p < 2; p++) {
+    let pQs = [];
+    while (pQs.length < numQuestions) {
+      pQs = pQs.concat(shuffleArray([...filteredQs]));
     }
+    players[p] = pQs.slice(0, numQuestions).map(q => {
+      const base = { ...q, q: q.question };
+      if (q.type === "spelling_tap") {
+        return { ...base, options: shuffleArray([...q.options]) };
+      }
+      return { ...base, options: shuffleArray([...q.options]) };
+    });
   }
   return players;
 };
+
 
 const createQuestionBank = (difficulty, len, subject = "Math") => generateQuestions(difficulty, len, subject);
 
@@ -1060,7 +999,7 @@ export default function RacingGame() {
 
                 {/* Difficulty Selector */}
                 <div style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, display: "flex", border: "1px solid rgba(255,255,255,0.13)" }}>
-                  {(subject === "Math" ? ["Easy", "Medium", "Hard"] : ["Easy"]).map(d => (
+                  {["Easy", "Medium", "Hard"].map(d => (
                     <button key={d} onClick={() => { setDifficulty(d); setQuestionBank(createQuestionBank(d, TOTAL_QUESTIONS, subject)); }}
                       style={{
                         background: difficulty === d ? "rgba(255,255,255,0.15)" : "transparent",
@@ -1235,9 +1174,19 @@ export default function RacingGame() {
             borderRadius: 20, padding: "4px 18px",
             color: "rgba(255,255,255,0.35)", fontFamily: "Nunito, sans-serif", fontSize: 12
           }}>
-            {difficulty === "Easy" && "➕ Addition Numbers to 10"}
-            {difficulty === "Medium" && "➕ ➖ ✖️ Numbers to 20"}
-            {difficulty === "Hard" && "➕ ➖ ✖️ ➗ Numbers to 100"}
+            {subject === "Math" ? (
+              <>
+                {difficulty === "Easy" && "➕ Addition Numbers to 10"}
+                {difficulty === "Medium" && "➕ ➖ ✖️ Numbers to 20"}
+                {difficulty === "Hard" && "➕ ➖ ✖️ ➗ Numbers to 100"}
+              </>
+            ) : (
+              <>
+                {difficulty === "Easy" && "🔤 Basic Vocab & Rhymes"}
+                {difficulty === "Medium" && "🔤 Colors, Shapes & Opposites"}
+                {difficulty === "Hard" && "🔤 Occupations, Places & Grammar"}
+              </>
+            )}
           </span>
         </div>
       </div>
