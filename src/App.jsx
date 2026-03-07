@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-
-import { playCorrectSound, playWrongSound, playTickSound, playWinSound, playStartSound } from "./sounds";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { playCorrectSound, playWrongSound, playTickSound, playWinSound, playStartSound, playTimeoutSound } from "./sounds";
 
 const shuffleArray = (items) => {
   const arr = [...items];
@@ -54,7 +53,7 @@ const MISS_CHEERS = ["Nice try!", "Keep going!", "You can do it!", "Almost there
 const TIMEOUT_CHEERS = ["Time's up! Next one!", "Quick quick! Next round!", "No worries, try the next question!"];
 
 const TOTAL_QUESTIONS = 10;
-const TIMER_DURATION = 10;
+const getTimerDuration = (subject) => subject === "Math" ? 15 : 10;
 const getDisplayName = (name, player) => (name || "").trim() || `Player ${player}`;
 
 // ─── SVG Vehicles ─────────────────────────────────────────────────────────────
@@ -689,6 +688,7 @@ export default function RacingGame() {
   const [questionBank, setQuestionBank] = useState(() => createQuestionBank(difficulty, 10, "Math"));
   const [questionIndex, setQuestionIndex] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const [countdownDisplay, setCountdownDisplay] = useState(null);
   const [endReason, setEndReason] = useState(null);
 
   const [p1Name, setP1Name] = useState("Player 1");
@@ -704,8 +704,8 @@ export default function RacingGame() {
   const [p2Powerup, setP2Powerup] = useState(null);
 
   // Tracking stats
-  const [p1Stats, setP1Stats] = useState({ attempts: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
-  const [p2Stats, setP2Stats] = useState({ attempts: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
+  const [p1Stats, setP1Stats] = useState({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
+  const [p2Stats, setP2Stats] = useState({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
 
   const [p1Feedback, setP1Feedback] = useState(null);
   const [p2Feedback, setP2Feedback] = useState(null);
@@ -714,7 +714,7 @@ export default function RacingGame() {
   const [p1Answered, setP1Answered] = useState(false);
   const [p2Answered, setP2Answered] = useState(false);
   const [cheer, setCheer] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(TIMER_DURATION);
+  const [timeLeft, setTimeLeft] = useState(() => getTimerDuration("Math"));
   const [winner, setWinner] = useState(null);
   const [roundKey, setRoundKey] = useState(0);
 
@@ -760,7 +760,7 @@ export default function RacingGame() {
       setQuestionIndex(next);
       setP1Feedback(null); setP2Feedback(null);
       setP1Answered(false); setP2Answered(false);
-      setTimeLeft(TIMER_DURATION);
+      setTimeLeft(getTimerDuration(subject));
       setRoundKey(k => k + 1);
       questionStartTimeRef.current = Date.now();
     }, 1400);
@@ -786,6 +786,7 @@ export default function RacingGame() {
           setP2Answered(true);
           setP1Streak(0);
           setP2Streak(0);
+          playTimeoutSound();
           showCheer(pickRandom(TIMEOUT_CHEERS), "#FFB800", "⏰");
           return 0;
         }
@@ -794,6 +795,7 @@ export default function RacingGame() {
     }, 1000);
     return () => clearInterval(timerRef.current);
   }, [roundKey, winner, gameStarted, showCheer]);
+
 
   // AI Player Logic
   useEffect(() => {
@@ -847,6 +849,7 @@ export default function RacingGame() {
       setP1Feedback(opt); setP1Answered(true);
       setP1Stats(s => ({ ...s, attempts: s.attempts + 1, totalAnswerTimeMs: s.totalAnswerTimeMs + timeTaken }));
       if (correct) {
+        setP1Stats(s => ({ ...s, correct: s.correct + 1 }));
         playCorrectSound();
         const moveAmount = p1Powerup === "turbo" ? 2 : 1;
         if (p1Powerup === "turbo") setP1Powerup(null); // consume turbo
@@ -884,6 +887,7 @@ export default function RacingGame() {
       setP2Feedback(opt); setP2Answered(true);
       setP2Stats(s => ({ ...s, attempts: s.attempts + 1, totalAnswerTimeMs: s.totalAnswerTimeMs + timeTaken }));
       if (correct) {
+        setP2Stats(s => ({ ...s, correct: s.correct + 1 }));
         playCorrectSound();
         const moveAmount = p2Powerup === "turbo" ? 2 : 1;
         if (p2Powerup === "turbo") setP2Powerup(null); // consume turbo
@@ -928,11 +932,12 @@ export default function RacingGame() {
     setP1Feedback(null); setP2Feedback(null);
     setP1Streak(0); setP2Streak(0);
     setP1Powerup(null); setP2Powerup(null);
-    setP1Stats({ attempts: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
-    setP2Stats({ attempts: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
+    setP1Stats({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
+    setP2Stats({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
     setP1Answered(false); setP2Answered(false);
     setCheer(null);
-    setTimeLeft(TIMER_DURATION); setWinner(null); setGameStarted(false); setEndReason(null);
+    setCountdownDisplay(null);
+    setTimeLeft(getTimerDuration(subject)); setWinner(null); setGameStarted(false); setEndReason(null);
     setRoundKey(k => k + 1);
     questionStartTimeRef.current = null;
   };
@@ -985,7 +990,7 @@ export default function RacingGame() {
                 {/* Subject Selector */}
                 <div style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, display: "flex", border: "1px solid rgba(255,255,255,0.13)" }}>
                   {["Math", "English"].map(s => (
-                    <button key={s} onClick={() => { setSubject(s); setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, s)); }}
+                    <button key={s} onClick={() => { setSubject(s); setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, s)); setTimeLeft(getTimerDuration(s)); }}
                       style={{
                         background: subject === s ? "rgba(255,255,255,0.15)" : "transparent",
                         border: "none", borderRadius: 8, padding: "6px 14px",
@@ -1062,27 +1067,44 @@ export default function RacingGame() {
                 {TOTAL_QUESTIONS}
               </span>
             </div>
-            <TimerRing timeLeft={timeLeft} total={TIMER_DURATION} />
+            <TimerRing timeLeft={timeLeft} total={getTimerDuration(subject)} />
           </div>
 
           {!gameStarted && !gameOver && (
             <button onClick={() => {
-              playStartSound();
-              setGameStarted(true);
-              showCheer("Let's race and solve!", "#60A5FA", "🚦");
+              if (countdownDisplay !== null) return;
+              let count = 3;
+              setCountdownDisplay(count);
+              playTickSound();
+              const iv = setInterval(() => {
+                count--;
+                if (count > 0) {
+                  setCountdownDisplay(count);
+                  playTickSound();
+                } else if (count === 0) {
+                  setCountdownDisplay(0);
+                  playStartSound();
+                } else {
+                  clearInterval(iv);
+                  setCountdownDisplay(null);
+                  setGameStarted(true);
+                }
+              }, 1000);
             }}
+              disabled={countdownDisplay !== null}
               style={{
                 background: "linear-gradient(135deg, #00C9A7, #4DFFDB)",
                 border: "none",
                 borderRadius: 14, padding: "11px 22px",
                 fontFamily: "'Fredoka One', cursive", fontSize: 17, color: "#042520",
-                cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
+                cursor: countdownDisplay === null ? "pointer" : "default", display: "flex", alignItems: "center", gap: 8,
                 boxShadow: "0 8px 20px rgba(0,201,167,0.35)",
-                transition: "all 0.2s"
+                transition: "all 0.2s",
+                opacity: countdownDisplay === null ? 1 : 0.5
               }}
-              onMouseOver={e => { e.currentTarget.style.transform = "scale(1.04)"; }}
+              onMouseOver={e => { if (countdownDisplay === null) e.currentTarget.style.transform = "scale(1.04)"; }}
               onMouseOut={e => { e.currentTarget.style.transform = "scale(1)"; }}>
-              ▶ Start
+              {countdownDisplay !== null ? (countdownDisplay === 0 ? "GO!" : `${countdownDisplay}...`) : "▶ Start"}
             </button>
           )}
 
@@ -1199,16 +1221,37 @@ export default function RacingGame() {
           mode={endReason}
           onRestart={restart}
           stats={winner === 1 ? {
-            score: p1Progress, attempts: p1Stats.attempts, maxStreak: p1Stats.maxStreak,
+            score: p1Stats.correct, attempts: p1Stats.attempts, maxStreak: p1Stats.maxStreak,
             avgTime: p1Stats.attempts ? p1Stats.totalAnswerTimeMs / p1Stats.attempts : 0,
             p1Vehicle, p2Vehicle
           } : {
-            score: p2Progress, attempts: p2Stats.attempts, maxStreak: p2Stats.maxStreak,
+            score: p2Stats.correct, attempts: p2Stats.attempts, maxStreak: p2Stats.maxStreak,
             avgTime: p2Stats.attempts ? p2Stats.totalAnswerTimeMs / p2Stats.attempts : 0,
             p1Vehicle, p2Vehicle
           }}
         />
       )}
+      
+      {/* Huge Countdown Overlay */}
+      {countdownDisplay !== null && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.5)", pointerEvents: "none"
+        }}>
+          <div key={countdownDisplay} style={{
+            fontSize: "clamp(120px, 20vw, 250px)",
+            fontFamily: "'Fredoka One', cursive",
+            color: countdownDisplay === 0 ? "#00C9A7" : "#FFB800",
+            textShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 80px ${countdownDisplay === 0 ? "#00C9A7" : "#FFB800"}88`,
+            animation: "popIn 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+            WebkitTextStroke: "4px rgba(255,255,255,0.2)"
+          }}>
+            {countdownDisplay === 0 ? "GO!" : countdownDisplay}
+          </div>
+        </div>
+      )}
+
       {isTie && (
         <TieBanner
           p1Name={displayP1Name}
