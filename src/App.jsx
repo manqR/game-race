@@ -53,7 +53,7 @@ const MISS_CHEERS = ["Nice try!", "Keep going!", "You can do it!", "Almost there
 const TIMEOUT_CHEERS = ["Time's up! Next one!", "Quick quick! Next round!", "No worries, try the next question!"];
 
 const TOTAL_QUESTIONS = 10;
-const getTimerDuration = (subject) => subject === "Math" ? 15 : 10;
+const getTimerDuration = (subject) => subject === "Math" ? 30 : 15;
 const getDisplayName = (name, player) => (name || "").trim() || `Player ${player}`;
 
 // ─── SVG Vehicles ─────────────────────────────────────────────────────────────
@@ -1231,7 +1231,7 @@ export default function RacingGame() {
           }}
         />
       )}
-      
+
       {/* Huge Countdown Overlay */}
       {countdownDisplay !== null && (
         <div style={{
