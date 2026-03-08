@@ -104,9 +104,9 @@ function Ufo({ color = "#F59E0B", base = "#FBBF24" }) {
 }
 
 const VEHICLES = {
-  car: { id: "car", icon: "🚗", Component: Car1 },
-  rocket: { id: "rocket", icon: "🚀", Component: Rocket },
-  ufo: { id: "ufo", icon: "🛸", Component: Ufo }
+  car: { id: "car", icon: "🚗", Component: Car1, price: 0 },
+  rocket: { id: "rocket", icon: "🚀", Component: Rocket, price: 0 },
+  ufo: { id: "ufo", icon: "🛸", Component: Ufo, price: 150 }
 };
 
 // ─── Timer Ring ───────────────────────────────────────────────────────────────
@@ -134,25 +134,25 @@ function TimerRing({ timeLeft, total }) {
 // ─── Track Themes ─────────────────────────────────────────────────────────────
 const TRACK_THEMES = {
   space: {
-    id: "space", name: "Space", icon: "🌌",
+    id: "space", name: "Space", icon: "🌌", price: 0,
     bg: "linear-gradient(180deg, #0d1b4b 0%, #112040 45%, #1a3a6b 100%)",
     particleShape: "circle", particleColor: "white", particleAnim: "twinkle", numParticles: 18,
     dashColor: "repeating-linear-gradient(180deg,rgba(255,255,255,0.22) 0,rgba(255,255,255,0.22) 18px,transparent 18px,transparent 36px)"
   },
   water: {
-    id: "water", name: "Ocean", icon: "🌊",
+    id: "water", name: "Ocean", icon: "🌊", price: 0,
     bg: "linear-gradient(180deg, #023859 0%, #065b77 45%, #0e8ea3 100%)",
     particleShape: "circle", particleColor: "rgba(255,255,255,0.4)", particleAnim: "floatUp", numParticles: 12, border: "1px solid rgba(255,255,255,0.6)",
     dashColor: "repeating-linear-gradient(180deg,rgba(255,255,255,0.3) 0,rgba(255,255,255,0.3) 18px,transparent 18px,transparent 36px)"
   },
   desert: {
-    id: "desert", name: "Desert", icon: "🏜️",
+    id: "desert", name: "Desert", icon: "🏜️", price: 100,
     bg: "linear-gradient(180deg, #b06222 0%, #d48a42 45%, #f2ba7c 100%)",
     particleShape: "rect", particleColor: "#82400b", particleAnim: "none", numParticles: 10, borderRadius: "2px",
     dashColor: "repeating-linear-gradient(180deg,rgba(255,255,255,0.4) 0,rgba(255,255,255,0.4) 18px,transparent 18px,transparent 36px)"
   },
   volcano: {
-    id: "volcano", name: "Volcano", icon: "🌋",
+    id: "volcano", name: "Volcano", icon: "🌋", price: 200,
     bg: "linear-gradient(180deg, #2b0606 0%, #591612 45%, #a32c1a 100%)",
     particleShape: "circle", particleColor: "#ffca4f", particleAnim: "floatUp", numParticles: 20,
     dashColor: "repeating-linear-gradient(180deg,rgba(255,200,100,0.3) 0,rgba(255,200,100,0.3) 18px,transparent 18px,transparent 36px)"
@@ -191,7 +191,7 @@ function CheerToast({ cheer }) {
   );
 }
 
-function RaceTrack({ p1Progress, p2Progress, p1Name, p2Name, total, p1Vehicle, p2Vehicle, theme }) {
+function RaceTrack({ p1Progress, p2Progress, p1Name, p2Name, total, p1Vehicle, p2Vehicle, theme, activeEmotes }) {
   const trackH = 400;
   const usable = trackH - 90;
   const p1Y = usable - (p1Progress / total) * usable;
@@ -247,13 +247,41 @@ function RaceTrack({ p1Progress, p2Progress, p1Name, p2Name, total, p1Vehicle, p
       {/* Center dash */}
       <div style={{ position: "absolute", left: "50%", top: 58, bottom: 18, width: 2, transform: "translateX(-50%)", background: t.dashColor }} />
 
+      {/* Floating Emotes Layer */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 20 }}>
+         {activeEmotes?.map(em => (
+            <div key={em.id} style={{
+               position: "absolute",
+               fontSize: 48,
+               top: em.player === 1 ? p1Y + 30 : p2Y + 30, // Start near sender's car
+               left: em.player === 1 ? "10%" : "80%", // P1 left side, P2 right side
+               animation: em.player === 1 
+                  ? "floatEmoteRight 2s cubic-bezier(0.25, 1, 0.5, 1) forwards" 
+                  : "floatEmoteLeft 2s cubic-bezier(0.25, 1, 0.5, 1) forwards",
+               filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.5))"
+            }}>
+               {em.emoji}
+            </div>
+         ))}
+      </div>
+
       {/* P1 Vehicle */}
-      <div style={{ position: "absolute", left: "12%", top: p1Y + 44, transition: "top 0.65s cubic-bezier(0.34,1.56,0.64,1)", zIndex: 5 }}>
+      <div style={{
+        position: "absolute", left: "12%", top: p1Y + 44,
+        transition: "top 0.65s cubic-bezier(0.34,1.56,0.64,1), transform 0.65s ease",
+        transform: "rotate(-5deg)", // Static tilt when moving upward conceptually, or dynamic if we tracked 'isMoving'
+        zIndex: 5
+      }}>
         <P1Component color="#FF3D6E" base="#FF6B93" />
       </div>
 
       {/* P2 Vehicle */}
-      <div style={{ position: "absolute", right: "12%", top: p2Y + 44, transition: "top 0.65s cubic-bezier(0.34,1.56,0.64,1)", zIndex: 5 }}>
+      <div style={{
+        position: "absolute", right: "12%", top: p2Y + 44,
+        transition: "top 0.65s cubic-bezier(0.34,1.56,0.64,1), transform 0.65s ease",
+        transform: "rotate(5deg)",
+        zIndex: 5
+      }}>
         <P2Component color="#00C9A7" base="#4DFFDB" />
       </div>
 
@@ -266,14 +294,241 @@ function RaceTrack({ p1Progress, p2Progress, p1Name, p2Name, total, p1Vehicle, p
   );
 }
 
+// ─── Lobby Screen ─────────────────────────────────────────────────────────────
+function Lobby({
+  subject, setSubject, difficulty, setDifficulty, isSinglePlayer, setIsSinglePlayer,
+  theme, setTheme,
+  p1Name, setP1Name, p1VehicleId, setP1VehicleId,
+  p2Name, setP2Name, p2VehicleId, setP2VehicleId,
+  onStart, coins, unlocked, buyItem, deferredPrompt, setDeferredPrompt
+}) {
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setDeferredPrompt(null);
+    }
+  };
+
+  return (
+    <div style={{
+      flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 30,
+      padding: "20px", animation: "fadeIn 0.4s ease", position: "relative"
+    }}>
+      {/* Floating Coin Balance in Lobby */}
+      <div style={{ 
+          position: "absolute", right: 20, top: 20, 
+          background: "rgba(255,215,0,0.15)", border: "1px solid #FFD700", borderRadius: 12, 
+          padding: "8px 16px", display: "flex", alignItems: "center", gap: 8,
+          boxShadow: "0 4px 12px rgba(255,215,0,0.2)"
+      }}>
+         <span style={{ fontSize: 24 }}>🪙</span>
+         <span style={{ color: "#FFD700", fontFamily: "'Fredoka One', cursive", fontSize: 22 }}>{coins}</span>
+      </div>
+      {/* Settings Row */}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", background: "rgba(255,255,255,0.05)", padding: "16px 24px", borderRadius: 24, border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(10px)" }}>
+        <button onClick={() => setIsSinglePlayer(v => !v)}
+          style={{
+            background: isSinglePlayer ? "rgba(167,139,250,0.2)" : "rgba(255,255,255,0.07)",
+            border: `1px solid ${isSinglePlayer ? "#A78BFA" : "rgba(255,255,255,0.13)"}`,
+            borderRadius: 12, padding: "8px 20px",
+            color: isSinglePlayer ? "#E7D7FF" : "rgba(255,255,255,0.7)",
+            fontFamily: "Nunito, sans-serif", fontWeight: 700, cursor: "pointer", fontSize: 16
+          }}>
+          {isSinglePlayer ? "🤖 vs AI" : "👥 2-Player"}
+        </button>
+
+        <div style={{ width: 1, background: "rgba(255,255,255,0.1)", margin: "0 8px" }} />
+
+        {["Math", "English"].map(s => (
+          <button key={s} onClick={() => setSubject(s)}
+            style={{
+              background: subject === s ? "rgba(255,255,255,0.15)" : "transparent",
+              border: "none", borderRadius: 10, padding: "8px 16px",
+              color: subject === s ? "white" : "rgba(255,255,255,0.5)",
+              fontFamily: "Nunito, sans-serif", fontWeight: 700, cursor: "pointer", fontSize: 16
+            }}>
+            {s === "Math" ? "🔢 " : "🔤 "}{s}
+          </button>
+        ))}
+
+        <div style={{ width: 1, background: "rgba(255,255,255,0.1)", margin: "0 8px" }} />
+
+        {["Easy", "Medium", "Hard"].map(d => (
+          <button key={d} onClick={() => setDifficulty(d)}
+            style={{
+              background: difficulty === d ? "rgba(255,255,255,0.15)" : "transparent",
+              border: "none", borderRadius: 10, padding: "8px 16px",
+              color: difficulty === d ? "white" : "rgba(255,255,255,0.5)",
+              fontFamily: "Nunito, sans-serif", fontWeight: 700, cursor: "pointer", fontSize: 16
+            }}>
+            {d}
+          </button>
+        ))}
+      </div>
+
+      {/* Players Row */}
+      <div style={{ display: "flex", gap: 30, width: "100%", maxWidth: 800, justifyContent: "center", flexWrap: "wrap" }}>
+        {/* P1 Card */}
+        <div style={{
+          flex: 1, minWidth: 280, background: "linear-gradient(145deg, rgba(255,61,110,0.15), rgba(0,0,0,0.4))",
+          border: "2px solid rgba(255,61,110,0.4)", borderRadius: 24, padding: 24, display: "flex", flexDirection: "column", gap: 16
+        }}>
+          <div style={{ color: "#FF6B93", fontFamily: "Nunito, sans-serif", fontWeight: 800, fontSize: 14, letterSpacing: 1 }}>PLAYER 1</div>
+          <input value={p1Name} onChange={e => setP1Name(e.target.value)} maxLength={18}
+            style={{
+              background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,61,110,0.5)", borderRadius: 12, padding: "12px 16px",
+              color: "white", fontFamily: "'Fredoka One', cursive", fontSize: 24, outline: "none"
+            }} />
+          <div style={{ color: "rgba(255,255,255,0.5)", fontFamily: "Nunito, sans-serif", fontSize: 12, marginTop: 8 }}>VEHICLE SELECT</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            {Object.values(VEHICLES).map(v => {
+              const VComp = v.Component;
+              const isUnlocked = v.price === 0 || unlocked.includes(`vehicle_${v.id}`);
+              return (
+                <button key={v.id} onClick={() => {
+                   if (isUnlocked) setP1VehicleId(v.id);
+                   else if (buyItem) buyItem(`vehicle_${v.id}`, v.price);
+                }}
+                  style={{
+                    background: p1VehicleId === v.id ? "rgba(255,61,110,0.2)" : "rgba(255,255,255,0.05)",
+                    border: `2px solid ${p1VehicleId === v.id ? "#FF3D6E" : "transparent"}`,
+                    borderRadius: 16, padding: "10px", cursor: isUnlocked ? "pointer" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 70, height: 60,
+                    opacity: isUnlocked ? 1 : 0.6, position: "relative"
+                  }}>
+                  <div style={{ transform: "scale(0.6)" }}>
+                    <VComp color={p1VehicleId === v.id ? "#FF3D6E" : "#888"} base={p1VehicleId === v.id ? "#FF6B93" : "#555"} />
+                  </div>
+                  {!isUnlocked && (
+                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+                        <span style={{ fontSize: 16 }}>🔒</span>
+                        <span style={{ fontSize: 10, fontFamily: "Nunito, sans-serif", color: "#FFD700", fontWeight: "bold", background: "rgba(0,0,0,0.5)", padding: "0 4px", borderRadius: 4 }}>{v.price}🪙</span>
+                     </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* P2 Card */}
+        <div style={{
+          flex: 1, minWidth: 280, background: "linear-gradient(145deg, rgba(0,201,167,0.15), rgba(0,0,0,0.4))",
+          border: "2px solid rgba(0,201,167,0.4)", borderRadius: 24, padding: 24, display: "flex", flexDirection: "column", gap: 16,
+          opacity: isSinglePlayer ? 0.7 : 1, pointerEvents: isSinglePlayer ? "none" : "auto"
+        }}>
+          <div style={{ color: "#4DFFDB", fontFamily: "Nunito, sans-serif", fontWeight: 800, fontSize: 14, letterSpacing: 1 }}>{isSinglePlayer ? "AI OPPONENT" : "PLAYER 2"}</div>
+          <input value={isSinglePlayer ? "Robot" : p2Name} onChange={e => setP2Name(e.target.value)} maxLength={18} disabled={isSinglePlayer}
+            style={{
+              background: "rgba(0,0,0,0.3)", border: "1px solid rgba(0,201,167,0.5)", borderRadius: 12, padding: "12px 16px",
+              color: "white", fontFamily: "'Fredoka One', cursive", fontSize: 24, outline: "none"
+            }} />
+          <div style={{ color: "rgba(255,255,255,0.5)", fontFamily: "Nunito, sans-serif", fontSize: 12, marginTop: 8 }}>VEHICLE SELECT</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            {Object.values(VEHICLES).map(v => {
+              const VComp = v.Component;
+              const vid = isSinglePlayer ? "rocket" : p2VehicleId;
+              const isUnlocked = v.price === 0 || unlocked.includes(`vehicle_${v.id}`);
+              return (
+                <button key={v.id} onClick={() => {
+                   if (isSinglePlayer) return;
+                   if (isUnlocked) setP2VehicleId(v.id);
+                   else if (buyItem) buyItem(`vehicle_${v.id}`, v.price);
+                }} disabled={isSinglePlayer}
+                  style={{
+                    background: vid === v.id ? "rgba(0,201,167,0.2)" : "rgba(255,255,255,0.05)",
+                    border: `2px solid ${vid === v.id ? "#00C9A7" : "transparent"}`,
+                    borderRadius: 16, padding: "10px", cursor: isSinglePlayer ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 70, height: 60,
+                    opacity: isUnlocked ? 1 : 0.6, position: "relative"
+                  }}>
+                  <div style={{ transform: "scale(0.6)" }}>
+                    <VComp color={vid === v.id ? "#00C9A7" : "#888"} base={vid === v.id ? "#4DFFDB" : "#555"} />
+                  </div>
+                  {!isUnlocked && (
+                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+                        <span style={{ fontSize: 16 }}>🔒</span>
+                        <span style={{ fontSize: 10, fontFamily: "Nunito, sans-serif", color: "#FFD700", fontWeight: "bold", background: "rgba(0,0,0,0.5)", padding: "0 4px", borderRadius: 4 }}>{v.price}🪙</span>
+                     </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Track Theme Row */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, background: "rgba(255,255,255,0.05)", padding: "20px 30px", borderRadius: 24, border: "1px solid rgba(255,255,255,0.1)", width: "100%", maxWidth: 800 }}>
+        <div style={{ color: "rgba(255,255,255,0.6)", fontFamily: "'Fredoka One', cursive", letterSpacing: 1 }}>TRACK SELECT</div>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
+          {Object.values(TRACK_THEMES).map(t => {
+            const isUnlocked = t.price === 0 || unlocked.includes(`theme_${t.id}`);
+            return (
+              <button key={t.id} onClick={() => {
+                 if (isUnlocked) setTheme(t.id);
+                 else if (buyItem) buyItem(`theme_${t.id}`, t.price);
+              }}
+                style={{
+                  background: theme === t.id ? t.bg : "rgba(0,0,0,0.5)",
+                  border: `2px solid ${theme === t.id ? "white" : "rgba(255,255,255,0.1)"}`,
+                  borderRadius: 16, padding: "12px 24px",
+                  color: theme === t.id ? "white" : "rgba(255,255,255,0.6)",
+                  fontFamily: "Nunito, sans-serif", fontWeight: 800, fontSize: 16, cursor: "pointer",
+                  boxShadow: theme === t.id ? "0 8px 20px rgba(0,0,0,0.4)" : "none",
+                  display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s",
+                  opacity: isUnlocked ? 1 : 0.6
+                }}>
+                <span style={{ fontSize: 22 }}>{isUnlocked ? t.icon : "🔒"}</span> 
+                {t.name}
+                {!isUnlocked && <span style={{ color: "#FFD700", marginLeft: 6, fontSize: 12 }}>{t.price}🪙</span>}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Start Button & Install Prompts */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", marginTop: 10 }}>
+        <button onClick={onStart} style={{
+          padding: "20px 80px", fontSize: 28, borderRadius: 100,
+          background: "linear-gradient(135deg, #A78BFA, #60A5FA)", color: "white", fontFamily: "'Fredoka One', cursive",
+          cursor: "pointer", border: "none", boxShadow: "0 10px 30px rgba(167,139,250,0.5)", transition: "transform 0.2s"
+        }}
+          onMouseOver={e => e.currentTarget.style.transform = "scale(1.05)"}
+          onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}
+        >
+          ▶ START RACE
+        </button>
+
+        {deferredPrompt && (
+          <button onClick={handleInstallClick} style={{
+            padding: "12px 30px", fontSize: 16, borderRadius: 100,
+            background: "rgba(0, 201, 167, 0.2)", color: "#4DFFDB", border: "2px solid #00C9A7", 
+            fontFamily: "'Fredoka One', cursive", cursor: "pointer", 
+            boxShadow: "0 4px 15px rgba(0,201,167,0.3)", transition: "all 0.2s", display: "flex", alignItems: "center", gap: 8
+          }}
+            onMouseOver={e => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.background = "rgba(0, 201, 167, 0.3)" }}
+            onMouseOut={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.background = "rgba(0, 201, 167, 0.2)" }}
+          >
+            <span style={{ fontSize: 20 }}>📱</span> Install App to Home Screen
+          </button>
+        )}
+      </div>
+
+    </div>
+  );
+}
+
 // ─── Player Panel ─────────────────────────────────────────────────────────────
-function PlayerPanel({ player, name, onNameChange, question, onAnswer, feedback, answered, canAnswer, streak, resultBanner, accent, vehicle, onVehicleChange, powerup }) {
+function PlayerPanel({ player, name, question, onAnswer, feedback, answered, canAnswer, streak, resultBanner, accent, vehicle, powerup, onEmote }) {
   const [typedLetters, setTypedLetters] = useState([]);
   useEffect(() => { setTypedLetters([]); }, [question]);
 
   if (!question) return null;
   const labelColors = ["#FFB800", "#A78BFA", "#00C9A7", "#FF3D6E"];
   const pInfo = powerup ? POWERUPS[powerup] : null;
+
+  const EMOTES = ["😂", "😱", "😡", "🚀"];
 
   const handleSpellingTap = (char, index) => {
     if (answered || !canAnswer) return;
@@ -306,32 +561,14 @@ function PlayerPanel({ player, name, onNameChange, question, onAnswer, feedback,
           fontSize: 26, boxShadow: `0 4px 14px ${accent}44`
         }}>{vehicle.icon}</div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: onVehicleChange ? 6 : 0 }}>
-            <input
-              value={name}
-              onChange={e => onNameChange(e.target.value)}
-              placeholder={`Player ${player}`}
-              maxLength={18}
-              style={{
-                width: "100%", color: accent, background: "rgba(255,255,255,0.07)",
-                border: `1px solid ${accent}66`, borderRadius: 10, padding: "7px 10px",
-                fontFamily: "'Fredoka One', cursive", fontSize: 18, lineHeight: 1.1, outline: "none"
-              }}
-            />
-            {onVehicleChange && (
-              <div style={{ display: "flex", gap: 4 }}>
-                {Object.values(VEHICLES).map(v => (
-                  <button key={v.id} onClick={() => onVehicleChange(v.id)}
-                    style={{
-                      background: vehicle.id === v.id ? `${accent}44` : "rgba(255,255,255,0.05)",
-                      border: `1px solid ${vehicle.id === v.id ? accent : "transparent"}`,
-                      borderRadius: 8, padding: 4, cursor: "pointer", fontSize: 16
-                    }}>
-                    {v.icon}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+            <div style={{
+              width: "100%", color: accent, background: "transparent",
+              fontFamily: "'Fredoka One', cursive", fontSize: 24, lineHeight: 1.1,
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+            }}>
+              {name}
+            </div>
           </div>
           <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontFamily: "Nunito, sans-serif" }}>
             {canAnswer ? "pick the right answer!" : "press start to begin!"}
@@ -363,6 +600,24 @@ function PlayerPanel({ player, name, onNameChange, question, onAnswer, feedback,
               fontFamily: "Nunito, sans-serif", fontSize: 11, fontWeight: 800, animation: "popIn 0.3s ease"
             }}>
               <span>{pInfo.icon}</span> <span>{pInfo.name}: {pInfo.desc}</span>
+            </div>
+          )}
+          
+          {/* Emote Bar */}
+          {onEmote && (
+            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+              {EMOTES.map(em => (
+                <button key={em} onClick={() => onEmote(em)}
+                  style={{
+                    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10,
+                    padding: "4px 8px", fontSize: 16, cursor: "pointer", transition: "transform 0.15s ease"
+                  }}
+                  onMouseOver={e => e.currentTarget.style.transform = "scale(1.1)"}
+                  onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}
+                >
+                  {em}
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -458,15 +713,21 @@ function PlayerPanel({ player, name, onNameChange, question, onAnswer, feedback,
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {question.options.map((opt, i) => {
-            const isCorrect = opt === question.answer;
+            const isCorrectOption = opt === question.answer;
             const isChosen = feedback === opt;
+            const showsCorrect = answered && isCorrectOption;
+            
             let bg = "rgba(255,255,255,0.09)";
             let border = `2px solid ${accent}2a`;
             let icon = null;
-            if (isChosen) {
-              bg = isCorrect ? "rgba(0,210,140,0.28)" : "rgba(255,61,110,0.28)";
-              border = isCorrect ? "2px solid #00D28C" : "2px solid #FF3D6E";
-              icon = isCorrect ? "✅" : "❌";
+            if (showsCorrect) {
+              bg = "rgba(0,210,140,0.28)";
+              border = "2px solid #00D28C";
+              icon = "✅";
+            } else if (isChosen && !isCorrectOption) {
+              bg = "rgba(255,61,110,0.28)";
+              border = "2px solid #FF3D6E";
+              icon = "❌";
             }
             return (
               <button key={opt} disabled={answered || !canAnswer} onClick={() => !answered && canAnswer && onAnswer(opt)}
@@ -714,6 +975,32 @@ export default function RacingGame() {
   const [p1Answered, setP1Answered] = useState(false);
   const [p2Answered, setP2Answered] = useState(false);
   const [cheer, setCheer] = useState(null);
+  
+  // Emotes State
+  const [activeEmotes, setActiveEmotes] = useState([]);
+  
+  // Meta-Progression State
+  const [coins, setCoins] = useState(() => {
+    const saved = localStorage.getItem("gameRace_coins");
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const [unlocked, setUnlocked] = useState(() => {
+    const saved = localStorage.getItem("gameRace_unlocked");
+    return saved ? JSON.parse(saved) : ["vehicle_car1", "vehicle_rocket", "theme_space", "theme_ocean"];
+  });
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
   const [timeLeft, setTimeLeft] = useState(() => getTimerDuration("Math"));
   const [winner, setWinner] = useState(null);
   const [roundKey, setRoundKey] = useState(0);
@@ -740,6 +1027,34 @@ export default function RacingGame() {
     cheerTimeoutRef.current = setTimeout(() => setCheer(null), 1300);
   }, []);
 
+  const triggerEmote = useCallback((player, emoji) => {
+    const id = Date.now() + Math.random();
+    // 1 -> starts left, floats right
+    // 2 -> starts right, floats left
+    setActiveEmotes(em => [...em, { id, player, emoji }]);
+    setTimeout(() => {
+      setActiveEmotes(em => em.filter(e => e.id !== id));
+    }, 2000);
+  }, []);
+
+  const buyItem = useCallback((itemId, price) => {
+    if (coins >= price && !unlocked.includes(itemId)) {
+      setCoins(c => {
+         const newCoins = c - price;
+         localStorage.setItem("gameRace_coins", newCoins.toString());
+         return newCoins;
+      });
+      setUnlocked(u => {
+         const newUnlocked = [...u, itemId];
+         localStorage.setItem("gameRace_unlocked", JSON.stringify(newUnlocked));
+         return newUnlocked;
+      });
+      showCheer("Item Unlocked! 🎉", "#FFD700", "🔓");
+    } else if (coins < price) {
+      showCheer("Not enough coins!", "#FF3D6E", "🪙");
+    }
+  }, [coins, unlocked, showCheer]);
+
   const advanceRound = useCallback(() => {
     clearInterval(timerRef.current);
     setTimeout(() => {
@@ -748,11 +1063,23 @@ export default function RacingGame() {
         if (p1Progress === p2Progress) {
           setWinner(null);
           setEndReason("tie");
+          // Grant tie coins
+          setCoins(c => {
+             const nc = c + 15;
+             localStorage.setItem("gameRace_coins", nc.toString());
+             return nc;
+          });
         } else {
           const scoreWinner = p1Progress > p2Progress ? 1 : 2;
           setWinner(scoreWinner);
           setEndReason("questions");
           playWinSound();
+          // Grant win coins
+          setCoins(c => {
+             const nc = c + 50;
+             localStorage.setItem("gameRace_coins", nc.toString());
+             return nc;
+          });
         }
         setGameStarted(false);
         return;
@@ -866,12 +1193,24 @@ export default function RacingGame() {
           nextStreak >= 3 ? "🔥" : "🎉"
         );
         checkGrantPowerup(nextStreak);
+        
+        // Rubber banding: if player 2 is trailing by 3 or more, give them a free shield
+        if (np - p2Progress >= 3 && !p2Powerup) {
+           setP2Powerup("shield");
+           showCheer("Catch up! Shield granted to " + displayP2Name, "#4DFFDB", "🛡️");
+        }
 
         if (np >= TOTAL_QUESTIONS) {
           clearInterval(timerRef.current);
           setWinner(1);
           setEndReason("finish");
           playWinSound();
+          // Grant win coins
+          setCoins(c => {
+             const nc = c + 50;
+             localStorage.setItem("gameRace_coins", nc.toString());
+             return nc;
+          });
         }
       } else {
         playWrongSound();
@@ -904,12 +1243,24 @@ export default function RacingGame() {
           nextStreak >= 3 ? "🔥" : "🎉"
         );
         checkGrantPowerup(nextStreak);
+        
+        // Rubber banding: if player 1 is trailing by 3 or more, give them a free shield
+        if (np - p1Progress >= 3 && !p1Powerup) {
+           setP1Powerup("shield");
+           showCheer("Catch up! Shield granted to " + displayP1Name, "#FFB800", "🛡️");
+        }
 
         if (np >= TOTAL_QUESTIONS) {
           clearInterval(timerRef.current);
           setWinner(2);
           setEndReason("finish");
           playWinSound();
+          // Grant win coins
+          setCoins(c => {
+             const nc = c + 50;
+             localStorage.setItem("gameRace_coins", nc.toString());
+             return nc;
+          });
         }
       } else {
         playWrongSound();
@@ -932,6 +1283,7 @@ export default function RacingGame() {
     setP1Feedback(null); setP2Feedback(null);
     setP1Streak(0); setP2Streak(0);
     setP1Powerup(null); setP2Powerup(null);
+    setActiveEmotes([]);
     setP1Stats({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
     setP2Stats({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
     setP1Answered(false); setP2Answered(false);
@@ -955,6 +1307,8 @@ export default function RacingGame() {
         @keyframes popIn    { from { opacity:0; transform:scale(0.65); } to { opacity:1; transform:scale(1); } }
         @keyframes bounce   { from { transform: translateY(0); } to { transform: translateY(-12px); } }
         @keyframes shake    { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+        @keyframes floatEmoteRight { 0% { transform: translate(0, 0) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translate(20px, -20px) scale(1.2); } 80% { opacity: 1; } 100% { transform: translate(120px, -60px) scale(1); opacity: 0; } }
+        @keyframes floatEmoteLeft { 0% { transform: translate(0, 0) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translate(-20px, -20px) scale(1.2); } 80% { opacity: 1; } 100% { transform: translate(-120px, -60px) scale(1); opacity: 0; } }
         ::-webkit-scrollbar { display: none; }
       `}</style>
 
@@ -968,111 +1322,18 @@ export default function RacingGame() {
         display: "flex", flexDirection: "column", gap: 14
       }}>
 
-        {/* ── HEADER ── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-
-          {/* Title and Controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <div style={{
-              fontSize: "clamp(22px, 3.2vw, 36px)",
-              backgroundImage: subject === "Math"
-                ? "linear-gradient(135deg, #FF3D6E, #FF9A3C)"
-                : "linear-gradient(135deg, #A78BFA, #60A5FA)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-              backgroundClip: "text", color: "transparent",
-              filter: subject === "Math"
-                ? "drop-shadow(0 2px 8px rgba(255,61,110,0.3))"
-                : "drop-shadow(0 2px 8px rgba(167,139,250,0.3))"
-            }}>🏎️ {subject} Race!</div>
-
-            {!gameStarted && !gameOver && (
-              <div style={{ display: "flex", gap: 10 }}>
-                {/* Subject Selector */}
-                <div style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, display: "flex", border: "1px solid rgba(255,255,255,0.13)" }}>
-                  {["Math", "English"].map(s => (
-                    <button key={s} onClick={() => { setSubject(s); setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, s)); setTimeLeft(getTimerDuration(s)); }}
-                      style={{
-                        background: subject === s ? "rgba(255,255,255,0.15)" : "transparent",
-                        border: "none", borderRadius: 8, padding: "6px 14px",
-                        color: subject === s ? "white" : "rgba(255,255,255,0.5)",
-                        fontFamily: "Nunito, sans-serif", fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
-                      }}>
-                      {s === "Math" ? "🔢 " : "🔤 "}{s}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Difficulty Selector */}
-                <div style={{ background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, display: "flex", border: "1px solid rgba(255,255,255,0.13)" }}>
-                  {["Easy", "Medium", "Hard"].map(d => (
-                    <button key={d} onClick={() => { setDifficulty(d); setQuestionBank(createQuestionBank(d, TOTAL_QUESTIONS, subject)); }}
-                      style={{
-                        background: difficulty === d ? "rgba(255,255,255,0.15)" : "transparent",
-                        border: "none", borderRadius: 8, padding: "6px 14px",
-                        color: difficulty === d ? "white" : "rgba(255,255,255,0.5)",
-                        fontFamily: "Nunito, sans-serif", fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
-                      }}>
-                      {d}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Mode Selector */}
-                <button onClick={() => setIsSinglePlayer(v => !v)}
-                  style={{
-                    background: isSinglePlayer ? "rgba(167,139,250,0.2)" : "rgba(255,255,255,0.07)",
-                    border: `1px solid ${isSinglePlayer ? "#A78BFA" : "rgba(255,255,255,0.13)"}`,
-                    borderRadius: 10, padding: "6px 16px",
-                    color: isSinglePlayer ? "#E7D7FF" : "rgba(255,255,255,0.7)",
-                    fontFamily: "Nunito, sans-serif", fontWeight: 700, cursor: "pointer", transition: "all 0.2s",
-                    display: "flex", alignItems: "center", gap: 6
-                  }}>
-                  {isSinglePlayer ? "🤖 vs AI" : "👥 2-Player"}
-                </button>
-              </div>
-            )}
-
-            {!gameStarted && !gameOver && (
-              <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                <span style={{ color: "rgba(255,255,255,0.4)", fontFamily: "Nunito, sans-serif", fontSize: 13, width: "100%", textAlign: "center", marginBottom: -4 }}>Track Theme</span>
-                {Object.values(TRACK_THEMES).map(t => (
-                  <button key={t.id} onClick={() => setTheme(t.id)}
-                    style={{
-                      background: theme === t.id ? "rgba(0,201,167,0.2)" : "rgba(255,255,255,0.07)",
-                      border: `1px solid ${theme === t.id ? "#00C9A7" : "rgba(255,255,255,0.13)"}`,
-                      borderRadius: 10, padding: "6px 14px",
-                      color: theme === t.id ? "#4DFFDB" : "rgba(255,255,255,0.7)",
-                      fontFamily: "Nunito, sans-serif", fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
-                    }}>
-                    {t.icon} {t.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Question counter + timer */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{
-              background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)",
-              borderRadius: 18, padding: "8px 20px",
-              display: "flex", alignItems: "center", gap: 10
-            }}>
-              <span style={{ color: "rgba(255,255,255,0.4)", fontFamily: "Nunito, sans-serif", fontSize: 13 }}>Question</span>
-              <span style={{ color: "white", fontFamily: "'Fredoka One', cursive", fontSize: 26 }}>
-                {Math.min(questionIndex + 1, TOTAL_QUESTIONS)}
-              </span>
-              <span style={{ color: "rgba(255,255,255,0.28)", fontSize: 18 }}>/</span>
-              <span style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Fredoka One', cursive", fontSize: 22 }}>
-                {TOTAL_QUESTIONS}
-              </span>
-            </div>
-            <TimerRing timeLeft={timeLeft} total={getTimerDuration(subject)} />
-          </div>
-
-          {!gameStarted && !gameOver && (
-            <button onClick={() => {
-              if (countdownDisplay !== null) return;
+        {(!gameStarted && countdownDisplay === null && !gameOver) ? (
+          <Lobby
+            subject={subject} setSubject={setSubject}
+            difficulty={difficulty} setDifficulty={setDifficulty}
+            isSinglePlayer={isSinglePlayer} setIsSinglePlayer={setIsSinglePlayer}
+            theme={theme} setTheme={setTheme}
+            p1Name={p1Name} setP1Name={setP1Name} p1VehicleId={p1VehicleId} setP1VehicleId={setP1VehicleId}
+            p2Name={p2Name} setP2Name={setP2Name} p2VehicleId={p2VehicleId} setP2VehicleId={setP2VehicleId}
+            coins={coins} unlocked={unlocked} buyItem={buyItem} deferredPrompt={deferredPrompt} setDeferredPrompt={setDeferredPrompt}
+            onStart={() => {
+              setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, subject));
+              setTimeLeft(getTimerDuration(subject));
               let count = 3;
               setCountdownDisplay(count);
               playTickSound();
@@ -1091,126 +1352,151 @@ export default function RacingGame() {
                 }
               }, 1000);
             }}
-              disabled={countdownDisplay !== null}
-              style={{
-                background: "linear-gradient(135deg, #00C9A7, #4DFFDB)",
-                border: "none",
-                borderRadius: 14, padding: "11px 22px",
-                fontFamily: "'Fredoka One', cursive", fontSize: 17, color: "#042520",
-                cursor: countdownDisplay === null ? "pointer" : "default", display: "flex", alignItems: "center", gap: 8,
-                boxShadow: "0 8px 20px rgba(0,201,167,0.35)",
-                transition: "all 0.2s",
-                opacity: countdownDisplay === null ? 1 : 0.5
-              }}
-              onMouseOver={e => { if (countdownDisplay === null) e.currentTarget.style.transform = "scale(1.04)"; }}
-              onMouseOut={e => { e.currentTarget.style.transform = "scale(1)"; }}>
-              {countdownDisplay !== null ? (countdownDisplay === 0 ? "GO!" : `${countdownDisplay}...`) : "▶ Start"}
-            </button>
-          )}
-
-          {/* 🔄 Reset button */}
-          <button onClick={restart}
-            style={{
-              background: "rgba(255,255,255,0.07)",
-              border: "2px solid rgba(255,255,255,0.18)",
-              borderRadius: 14, padding: "11px 22px",
-              fontFamily: "'Fredoka One', cursive", fontSize: 17, color: "white",
-              cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
-              transition: "all 0.2s", backdropFilter: "blur(8px)"
-            }}
-            onMouseOver={e => { e.currentTarget.style.background = "rgba(255,61,110,0.22)"; e.currentTarget.style.borderColor = "#FF3D6E"; }}
-            onMouseOut={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)"; }}>
-            🔄 Reset
-          </button>
-        </div>
-
-        {/* ── MAIN GRID ── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 255px 1fr",
-          gap: 14, alignItems: "start", flex: 1
-        }}>
-          <PlayerPanel player={1} name={p1Name} onNameChange={setP1Name} question={p1Q}
-            vehicle={p1Vehicle} onVehicleChange={gameStarted ? null : setP1VehicleId}
-            canAnswer={gameStarted}
-            streak={p1Streak}
-            powerup={p1Powerup}
-            resultBanner={p1ResultBanner}
-            onAnswer={opt => handleAnswer(1, opt)}
-            feedback={p1Feedback} answered={p1Answered} accent="#FF3D6E" />
-
-          <RaceTrack
-            p1Progress={p1Progress}
-            p2Progress={p2Progress}
-            p1Name={displayP1Name}
-            p2Name={displayP2Name}
-            total={TOTAL_QUESTIONS}
-            p1Vehicle={p1Vehicle}
-            p2Vehicle={p2Vehicle}
-            theme={theme}
           />
+        ) : (
+          <>
+            {/* ── HEADER ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
 
-          <PlayerPanel player={2} name={isSinglePlayer ? "Robot" : p2Name} onNameChange={setP2Name} question={p2Q}
-            vehicle={p2Vehicle} onVehicleChange={gameStarted || isSinglePlayer ? null : setP2VehicleId}
-            canAnswer={gameStarted && !isSinglePlayer}
-            streak={p2Streak}
-            powerup={p2Powerup}
-            resultBanner={p2ResultBanner}
-            onAnswer={opt => handleAnswer(2, opt)}
-            feedback={p2Feedback} answered={p2Answered} accent="#00C9A7" />
-        </div>
+              {/* Title and Controls */}
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                <div style={{
+                  fontSize: "clamp(22px, 3.2vw, 36px)",
+                  backgroundImage: subject === "Math"
+                    ? "linear-gradient(135deg, #FF3D6E, #FF9A3C)"
+                    : "linear-gradient(135deg, #A78BFA, #60A5FA)",
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                  backgroundClip: "text", color: "transparent",
+                  filter: subject === "Math"
+                    ? "drop-shadow(0 2px 8px rgba(255,61,110,0.3))"
+                    : "drop-shadow(0 2px 8px rgba(167,139,250,0.3))"
+                }}>🏎️ {subject} Race!</div>
+              </div>
 
-        {/* ── PROGRESS BARS ── */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          background: "rgba(255,255,255,0.05)", borderRadius: 14,
-          padding: "10px 18px", border: "1px solid rgba(255,255,255,0.07)"
-        }}>
-          <span style={{ color: "#FF6B93", fontFamily: "Nunito, sans-serif", fontWeight: 900, fontSize: 15, whiteSpace: "nowrap" }}>🚗 {displayP1Name}</span>
-          <div style={{ flex: 1, height: 12, background: "rgba(255,255,255,0.07)", borderRadius: 8, overflow: "hidden" }}>
+              {/* Question counter + timer */}
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{
+                  background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)",
+                  borderRadius: 18, padding: "8px 20px",
+                  display: "flex", alignItems: "center", gap: 10
+                }}>
+                  <span style={{ color: "rgba(255,255,255,0.4)", fontFamily: "Nunito, sans-serif", fontSize: 13 }}>Question</span>
+                  <span style={{ color: "white", fontFamily: "'Fredoka One', cursive", fontSize: 26 }}>
+                    {Math.min(questionIndex + 1, TOTAL_QUESTIONS)}
+                  </span>
+                  <span style={{ color: "rgba(255,255,255,0.28)", fontSize: 18 }}>/</span>
+                  <span style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Fredoka One', cursive", fontSize: 22 }}>
+                    {TOTAL_QUESTIONS}
+                  </span>
+                </div>
+                <TimerRing timeLeft={timeLeft} total={getTimerDuration(subject)} />
+              </div>
+
+              {/* 🔄 Reset button */}
+              <button onClick={restart}
+                style={{
+                  background: "rgba(255,255,255,0.07)",
+                  border: "2px solid rgba(255,255,255,0.18)",
+                  borderRadius: 14, padding: "11px 22px",
+                  fontFamily: "'Fredoka One', cursive", fontSize: 17, color: "white",
+                  cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
+                  transition: "all 0.2s", backdropFilter: "blur(8px)"
+                }}
+                onMouseOver={e => { e.currentTarget.style.background = "rgba(255,61,110,0.22)"; e.currentTarget.style.borderColor = "#FF3D6E"; }}
+                onMouseOut={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)"; }}>
+                🔄 Reset
+              </button>
+            </div>
+
+            {/* ── MAIN GRID ── */}
             <div style={{
-              height: "100%", borderRadius: 8,
-              width: `${(p1Progress / TOTAL_QUESTIONS) * 100}%`,
-              background: "linear-gradient(90deg, #FF3D6E, #FF8566)",
-              transition: "width 0.65s cubic-bezier(0.34,1.56,0.64,1)",
-              boxShadow: "0 0 10px #FF3D6E88"
-            }} />
-          </div>
-          <div style={{ width: 2, height: 12, background: "rgba(255,255,255,0.12)", borderRadius: 2 }} />
-          <div style={{ flex: 1, height: 12, background: "rgba(255,255,255,0.07)", borderRadius: 8, overflow: "hidden" }}>
-            <div style={{
-              height: "100%", borderRadius: 8, float: "right",
-              width: `${(p2Progress / TOTAL_QUESTIONS) * 100}%`,
-              background: "linear-gradient(270deg, #00C9A7, #4DFFDB)",
-              transition: "width 0.65s cubic-bezier(0.34,1.56,0.64,1)",
-              boxShadow: "0 0 10px #00C9A788"
-            }} />
-          </div>
-          <span style={{ color: "#4DFFDB", fontFamily: "Nunito, sans-serif", fontWeight: 900, fontSize: 15, whiteSpace: "nowrap" }}>{displayP2Name} 🚙</span>
-        </div>
+              display: "grid",
+              gridTemplateColumns: "1fr 255px 1fr",
+              gap: 14, alignItems: "start", flex: 1
+            }}>
+              <PlayerPanel player={1} name={displayP1Name} question={p1Q}
+                vehicle={p1Vehicle}
+                canAnswer={gameStarted}
+                streak={p1Streak}
+                powerup={p1Powerup}
+                resultBanner={p1ResultBanner}
+                onAnswer={opt => handleAnswer(1, opt)}
+                feedback={p1Feedback} answered={p1Answered} accent="#FF3D6E" />
 
-        {/* Grade/Difficulty label */}
-        <div style={{ textAlign: "center" }}>
-          <span style={{
-            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 20, padding: "4px 18px",
-            color: "rgba(255,255,255,0.35)", fontFamily: "Nunito, sans-serif", fontSize: 12
-          }}>
-            {subject === "Math" ? (
-              <>
-                {difficulty === "Easy" && "➕ Addition Numbers to 10"}
-                {difficulty === "Medium" && "➕ ➖ ✖️ Numbers to 20"}
-                {difficulty === "Hard" && "➕ ➖ ✖️ ➗ Numbers to 100"}
-              </>
-            ) : (
-              <>
-                {difficulty === "Easy" && "🔤 Basic Vocab & Rhymes"}
-                {difficulty === "Medium" && "🔤 Colors, Shapes & Opposites"}
-                {difficulty === "Hard" && "🔤 Occupations, Places & Grammar"}
-              </>
-            )}
-          </span>
-        </div>
+              <RaceTrack
+                p1Progress={p1Progress}
+                p2Progress={p2Progress}
+                p1Name={displayP1Name}
+                p2Name={displayP2Name}
+                total={TOTAL_QUESTIONS}
+                p1Vehicle={p1Vehicle}
+                p2Vehicle={p2Vehicle}
+                theme={theme}
+              />
+
+              <PlayerPanel player={2} name={isSinglePlayer ? "Robot" : displayP2Name} question={p2Q}
+                vehicle={p2Vehicle}
+                canAnswer={gameStarted && !isSinglePlayer}
+                streak={p2Streak}
+                powerup={p2Powerup}
+                resultBanner={p2ResultBanner}
+                onAnswer={opt => handleAnswer(2, opt)}
+                feedback={p2Feedback} answered={p2Answered} accent="#00C9A7" />
+            </div>
+
+            {/* ── PROGRESS BARS ── */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              background: "rgba(255,255,255,0.05)", borderRadius: 14,
+              padding: "10px 18px", border: "1px solid rgba(255,255,255,0.07)"
+            }}>
+              <span style={{ color: "#FF6B93", fontFamily: "Nunito, sans-serif", fontWeight: 900, fontSize: 15, whiteSpace: "nowrap" }}>🚗 {displayP1Name}</span>
+              <div style={{ flex: 1, height: 12, background: "rgba(255,255,255,0.07)", borderRadius: 8, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", borderRadius: 8,
+                  width: `${(p1Progress / TOTAL_QUESTIONS) * 100}%`,
+                  background: "linear-gradient(90deg, #FF3D6E, #FF8566)",
+                  transition: "width 0.65s cubic-bezier(0.34,1.56,0.64,1)",
+                  boxShadow: "0 0 10px #FF3D6E88"
+                }} />
+              </div>
+              <div style={{ width: 2, height: 12, background: "rgba(255,255,255,0.12)", borderRadius: 2 }} />
+              <div style={{ flex: 1, height: 12, background: "rgba(255,255,255,0.07)", borderRadius: 8, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", borderRadius: 8, float: "right",
+                  width: `${(p2Progress / TOTAL_QUESTIONS) * 100}%`,
+                  background: "linear-gradient(270deg, #00C9A7, #4DFFDB)",
+                  transition: "width 0.65s cubic-bezier(0.34,1.56,0.64,1)",
+                  boxShadow: "0 0 10px #00C9A788"
+                }} />
+              </div>
+              <span style={{ color: "#4DFFDB", fontFamily: "Nunito, sans-serif", fontWeight: 900, fontSize: 15, whiteSpace: "nowrap" }}>{displayP2Name} 🚙</span>
+            </div>
+
+            {/* Grade/Difficulty label */}
+            <div style={{ textAlign: "center" }}>
+              <span style={{
+                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 20, padding: "4px 18px",
+                color: "rgba(255,255,255,0.35)", fontFamily: "Nunito, sans-serif", fontSize: 12
+              }}>
+                {subject === "Math" ? (
+                  <>
+                    {difficulty === "Easy" && "➕ Addition Numbers to 10"}
+                    {difficulty === "Medium" && "➕ ➖ ✖️ Numbers to 20"}
+                    {difficulty === "Hard" && "➕ ➖ ✖️ ➗ Numbers to 100"}
+                  </>
+                ) : (
+                  <>
+                    {difficulty === "Easy" && "🔤 Basic Vocab & Rhymes"}
+                    {difficulty === "Medium" && "🔤 Colors, Shapes & Opposites"}
+                    {difficulty === "Hard" && "🔤 Occupations, Places & Grammar"}
+                  </>
+                )}
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Winner Banner */}
