@@ -12,6 +12,7 @@ const shuffleArray = (items) => {
 
 import { englishQuestions } from "./data/englishQuestions";
 import { mathQuestions } from "./data/mathQuestions";
+import prizesData from "./data/prizes.json";
 
 // ─── Question Generator ───────────────────────────────────────────────────────
 const generateQuestions = (difficulty, numQuestions, subject = "Math") => {
@@ -295,6 +296,100 @@ function RaceTrack({ p1Progress, p2Progress, p1Name, p2Name, total, p1Vehicle, p
 }
 
 // ─── Lobby Screen ─────────────────────────────────────────────────────────────
+function PrizeShowcaseModal({ onClose }) {
+  const [activeTab, setActiveTab] = useState("Medium");
+
+  const renderTierPrizes = (difficulty, tierKey) => {
+    const tierData = prizesData[difficulty].tiers[tierKey];
+    const childPrizes = tierData.prizes.child;
+
+    return (
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ 
+          color: tierData.color, fontFamily: "'Fredoka One', cursive", fontSize: 20, 
+          textShadow: `0 0 10px ${tierData.glowColor}88`, marginBottom: 10, textAlign: "left"
+        }}>
+          {tierData.label}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "flex-start" }}>
+          {childPrizes.map((p, i) => (
+            <div key={i} style={{ 
+              background: "rgba(255,255,255,0.1)", borderRadius: 12, padding: "8px 12px", 
+              display: "flex", alignItems: "center", gap: 8, border: "1px solid rgba(255,255,255,0.1)"
+            }}>
+              <span style={{ fontSize: 24 }}>{p.emoji}</span>
+              <span style={{ color: "white", fontFamily: "Nunito, sans-serif", fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      background: "rgba(10,12,28,0.95)", backdropFilter: "blur(12px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      animation: "fadeIn 0.3s ease"
+    }}>
+      <div style={{
+        background: "linear-gradient(145deg, #1a1b3b, #0f0f24)",
+        border: "3px solid #A78BFA", borderRadius: 28, width: "90%", maxWidth: 800, maxHeight: "90vh",
+        display: "flex", flexDirection: "column",
+        boxShadow: "0 20px 50px rgba(0,0,0,0.5), 0 0 60px rgba(167,139,250,0.2)",
+        animation: "popIn 0.4s cubic-bezier(0.34,1.56,0.64,1)"
+      }}>
+        {/* Header */}
+        <div style={{ padding: "24px 30px", borderBottom: "1px solid rgba(255,255,255,0.1)", textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 10 }}>🎁</div>
+          <div style={{ 
+            fontFamily: "'Fredoka One', cursive", fontSize: 32, 
+            background: "linear-gradient(135deg, #A78BFA, #FFB800)", WebkitBackgroundClip: "text", color: "transparent"
+          }}>
+            Papan Hadiah Spesial!
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.7)", fontFamily: "Nunito, sans-serif", marginTop: 8 }}>
+            Main di level <strong>Medium</strong> atau <strong>Hard</strong> dan kumpulkan skor untuk mendapatkan hadiah ini!
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+          {["Medium", "Hard"].map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{
+              flex: 1, background: activeTab === tab ? "rgba(167,139,250,0.2)" : "transparent",
+              border: "none", padding: 16, color: activeTab === tab ? "white" : "rgba(255,255,255,0.5)",
+              fontFamily: "'Fredoka One', cursive", fontSize: 20, cursor: "pointer", transition: "all 0.2s"
+            }}>
+              Level {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: "30px", overflowY: "auto", flex: 1 }}>
+          {renderTierPrizes(activeTab, "perfect")}
+          {renderTierPrizes(activeTab, "gold")}
+          {renderTierPrizes(activeTab, "silver")}
+          {renderTierPrizes(activeTab, "bronze")}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "20px", borderTop: "1px solid rgba(255,255,255,0.1)", textAlign: "center" }}>
+          <button onClick={onClose} style={{
+            background: "linear-gradient(135deg, #A78BFA, #60A5FA)", border: "none", borderRadius: 100,
+            padding: "12px 40px", color: "white", fontFamily: "'Fredoka One', cursive", fontSize: 20,
+            cursor: "pointer", boxShadow: "0 8px 24px rgba(167,139,250,0.4)"
+          }}>
+            Tutup & Main Sekarang! 🎮
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Lobby({
   subject, setSubject, difficulty, setDifficulty, isSinglePlayer, setIsSinglePlayer,
   theme, setTheme,
@@ -302,6 +397,7 @@ function Lobby({
   p2Name, setP2Name, p2VehicleId, setP2VehicleId,
   onStart, coins, unlocked, buyItem, deferredPrompt, setDeferredPrompt
 }) {
+  const [showPrizes, setShowPrizes] = useState(false);
   const handleInstallClick = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
@@ -489,6 +585,19 @@ function Lobby({
 
       {/* Start Button & Install Prompts */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", marginTop: 10 }}>
+        
+        <button onClick={() => setShowPrizes(true)} style={{
+          padding: "16px 40px", fontSize: 22, borderRadius: 100,
+          background: "linear-gradient(135deg, #FFD700, #FFA500)", color: "#5c3a00", fontFamily: "'Fredoka One', cursive",
+          cursor: "pointer", border: "4px solid #fff", boxShadow: "0 8px 25px rgba(255,215,0,0.5)", transition: "transform 0.2s",
+          animation: "bounce 0.7s ease infinite alternate"
+        }}
+          onMouseOver={e => e.currentTarget.style.transform = "scale(1.05)"}
+          onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}
+        >
+          🎁 Lihat Hadiah Spesial!
+        </button>
+
         <button onClick={onStart} style={{
           padding: "20px 80px", fontSize: 28, borderRadius: 100,
           background: "linear-gradient(135deg, #A78BFA, #60A5FA)", color: "white", fontFamily: "'Fredoka One', cursive",
@@ -514,7 +623,8 @@ function Lobby({
           </button>
         )}
       </div>
-
+      
+      {showPrizes && <PrizeShowcaseModal onClose={() => setShowPrizes(false)} />}
     </div>
   );
 }
@@ -941,6 +1051,173 @@ function TieBanner({ p1Name, p2Name, score, onRestart }) {
   );
 }
 
+// --- Helpers for Grand Prize ---
+function getTier(correctCount) {
+  const pct = (correctCount / TOTAL_QUESTIONS) * 100;
+  if (pct === 100) return "perfect";
+  if (pct >= 90)  return "gold";
+  if (pct >= 80)  return "silver";
+  if (pct >= 70)  return "bronze";
+  return null;
+}
+
+function detectPersona(name) {
+  const n = (name || "").toLowerCase();
+  if (["bapak","dad","ayah","papa","abah"].some(k => n.includes(k))) return "dad";
+  if (["mamah","mama","mom","ibu","bunda","umi"].some(k => n.includes(k))) return "mom";
+  return "child";
+}
+
+function buildBalloonSlots(prizes) {
+  if (!prizes || prizes.length === 0) return [];
+  const shuffled = [...prizes].sort(() => Math.random() - 0.5);
+  const result = [];
+  while (result.length < 9) result.push(...shuffled);
+  return result.slice(0, 9).sort(() => Math.random() - 0.5);
+}
+
+function GrandPrizeModal({ state, winnerName, onPhaseChange, onClose }) {
+  const { tierData, phase, prizes9, revealedPrize } = state;
+  const [poppedIndex, setPoppedIndex] = useState(null);
+
+  const handleBalloonClick = (index, prize) => {
+    if (phase !== "balloons") return;
+    setPoppedIndex(index);
+    onPhaseChange({ ...state, phase: "popped", revealedPrize: prize });
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 999,
+      background: "rgba(10,12,28,0.9)", backdropFilter: "blur(12px)",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      animation: "fadeIn 0.4s ease"
+    }}>
+      {/* Confetti for revealed phase */}
+      {phase === "popped" && [...Array(40)].map((_, i) => (
+        <div key={i} style={{
+          position: "absolute", left: `${Math.random() * 100}%`, top: -18,
+          width: 8 + Math.random() * 8, height: 8 + Math.random() * 8,
+          borderRadius: i % 2 === 0 ? "50%" : "2px",
+          background: ["#FF3D6E", "#FFD700", "#00C9FF", "#A78BFA", "#4DFFDB"][i % 5],
+          animation: `fall ${1.5 + Math.random() * 2}s ${Math.random() * 0.5}s ease-in infinite`
+        }} />
+      ))}
+
+      <div style={{
+        textAlign: "center", maxWidth: 600, width: "90%",
+        animation: "popIn 0.5s cubic-bezier(0.34,1.56,0.64,1)"
+      }}>
+        <div style={{
+          color: tierData.color, fontFamily: "'Fredoka One', cursive", fontSize: "clamp(32px, 5vw, 48px)",
+          textShadow: `0 0 20px ${tierData.glowColor}88`, marginBottom: 8
+        }}>
+          {tierData.label}
+        </div>
+        
+        <div style={{ color: "white", fontFamily: "Nunito, sans-serif", fontSize: 20, marginBottom: 24 }}>
+          {phase === "eligible" && `Selamat, ${winnerName}! 🎉`}
+          {phase === "balloons" && "Pilih satu balon untuk melihat hadiahmu!"}
+          {phase === "popped" && "Selamat! Kamu mendapatkan:"}
+        </div>
+
+        {phase === "eligible" && (
+          <button onClick={() => onPhaseChange({ ...state, phase: "balloons" })}
+            style={{
+              background: `linear-gradient(135deg, ${tierData.color}, ${tierData.glowColor})`,
+              border: "none", borderRadius: 100, padding: "16px 40px",
+              color: "white", fontFamily: "'Fredoka One', cursive", fontSize: 24,
+              cursor: "pointer", boxShadow: `0 8px 24px ${tierData.glowColor}66`,
+              transition: "transform 0.2s"
+            }}
+            onMouseOver={e => e.currentTarget.style.transform = "scale(1.05)"}
+            onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}
+          >
+            Pilih Balon Hadiahmu! 🎈
+          </button>
+        )}
+
+        {(phase === "balloons" || phase === "popped") && (
+          <div style={{ position: "relative", minHeight: 320, display: "flex", justifyContent: "center", alignItems: "center" }}>
+            
+            {/* Balloon Grid */}
+            <div style={{
+              display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20,
+              opacity: phase === "popped" ? 0.3 : 1, transition: "opacity 0.5s",
+              pointerEvents: phase === "popped" ? "none" : "auto"
+            }}>
+              {prizes9.map((prize, i) => {
+                const colors = ["#FF3D6E", "#A78BFA", "#00C9A7", "#FFB800", "#60A5FA", "#FF9A3C", "#F472B6", "#34D399", "#818CF8"];
+                const isPopped = poppedIndex === i;
+                return (
+                  <div key={i} style={{ position: "relative" }}>
+                    {isPopped && (
+                      <div style={{ position: "absolute", inset: -20 }}>
+                        {[...Array(8)].map((_, p) => (
+                          <div key={p} style={{
+                            position: "absolute", left: "50%", top: "50%", width: 10, height: 10, borderRadius: "50%",
+                            background: colors[i],
+                            '--tx': `${(Math.random() - 0.5) * 100}px`, '--ty': `${(Math.random() - 0.5) * 100}px`,
+                            animation: "burstParticle 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards"
+                          }} />
+                        ))}
+                      </div>
+                    )}
+                    
+                    <button onClick={() => handleBalloonClick(i, prize)}
+                      style={{
+                        background: "none", border: "none", cursor: phase === "popped" ? "default" : "pointer",
+                        fontSize: 64, filter: `drop-shadow(0 10px 15px ${colors[i]}66)`,
+                        animation: isPopped ? "balloonPop 0.3s forwards" : `balloonFloat ${2.5 + (i % 3)}s ${(i % 2)}s ease-in-out infinite`,
+                        transformOrigin: "bottom center", outline: "none",
+                        opacity: isPopped ? 0 : 1
+                      }}>
+                      🎈
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Revealed Prize Card */}
+            {phase === "popped" && revealedPrize && (
+              <div style={{
+                position: "absolute", zIndex: 10,
+                background: "linear-gradient(145deg, rgba(255,255,255,0.1), rgba(0,0,0,0.5))",
+                border: `3px solid ${tierData.color}`, borderRadius: 24, padding: "30px 40px",
+                backdropFilter: "blur(10px)", boxShadow: `0 0 50px ${tierData.glowColor}aa`,
+                animation: "prizeReveal 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards"
+              }}>
+                <div style={{ fontSize: 80, marginBottom: 10 }}>{revealedPrize.emoji}</div>
+                <div style={{ color: "white", fontFamily: "'Fredoka One', cursive", fontSize: 32 }}>{revealedPrize.name}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {phase === "popped" && (
+          <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 30, animation: "fadeIn 1s ease" }}>
+            <button style={{
+              background: "rgba(255,255,255,0.1)", border: "2px solid rgba(255,255,255,0.2)",
+              borderRadius: 16, padding: "12px 24px", color: "white", fontFamily: "Nunito, sans-serif", fontWeight: 800, fontSize: 18,
+              cursor: "pointer"
+            }}>
+              Klaim Hadiah 🎁
+            </button>
+            <button onClick={onClose} style={{
+              background: `linear-gradient(135deg, ${tierData.color}, ${tierData.glowColor})`,
+              border: "none", borderRadius: 16, padding: "12px 30px", color: "white", fontFamily: "'Fredoka One', cursive", fontSize: 20,
+              cursor: "pointer", boxShadow: `0 6px 16px ${tierData.glowColor}66`
+            }}>
+              Main Lagi 🔄
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function RacingGame() {
   const [difficulty, setDifficulty] = useState("Easy");
   const [subject, setSubject] = useState("Math");
@@ -979,6 +1256,8 @@ export default function RacingGame() {
   // Emotes State
   const [activeEmotes, setActiveEmotes] = useState([]);
   
+  const [grandPrizeState, setGrandPrizeState] = useState(null);
+
   // Meta-Progression State
   const [coins, setCoins] = useState(() => {
     const saved = localStorage.getItem("gameRace_coins");
@@ -1080,6 +1359,20 @@ export default function RacingGame() {
              localStorage.setItem("gameRace_coins", nc.toString());
              return nc;
           });
+
+          // Check for Grand Prize based on correct answers
+          if (difficulty !== "Easy") {
+             const winnerStats = scoreWinner === 1 ? p1Stats : p2Stats;
+             const winnerNameStr = scoreWinner === 1 ? p1Name : (isSinglePlayer ? "Robot" : p2Name);
+             const tier = getTier(winnerStats.correct);
+             if (tier) {
+                const persona = detectPersona(winnerNameStr);
+                const diffKey = difficulty === "Hard" ? "Hard" : "Medium";
+                const tierData = prizesData[diffKey].tiers[tier];
+                const prizes9 = buildBalloonSlots(tierData.prizes[persona]);
+                setGrandPrizeState({ tier, tierData, persona, prizes9, phase: "eligible", revealedPrize: null });
+             }
+          }
         }
         setGameStarted(false);
         return;
@@ -1091,7 +1384,7 @@ export default function RacingGame() {
       setRoundKey(k => k + 1);
       questionStartTimeRef.current = Date.now();
     }, 1400);
-  }, [questionIndex, p1Progress, p2Progress]);
+  }, [questionIndex, p1Progress, p2Progress, difficulty]);
 
   useEffect(() => () => {
     clearInterval(timerRef.current);
@@ -1211,6 +1504,17 @@ export default function RacingGame() {
              localStorage.setItem("gameRace_coins", nc.toString());
              return nc;
           });
+
+          if (difficulty !== "Easy") {
+             const tier = getTier(p1Stats.correct + 1);
+             if (tier) {
+                const persona = detectPersona(p1Name);
+                const diffKey = difficulty === "Hard" ? "Hard" : "Medium";
+                const tierData = prizesData[diffKey].tiers[tier];
+                const prizes9 = buildBalloonSlots(tierData.prizes[persona]);
+                setGrandPrizeState({ tier, tierData, persona, prizes9, phase: "eligible", revealedPrize: null });
+             }
+          }
         }
       } else {
         playWrongSound();
@@ -1261,6 +1565,18 @@ export default function RacingGame() {
              localStorage.setItem("gameRace_coins", nc.toString());
              return nc;
           });
+
+          if (difficulty !== "Easy") {
+             const tier = getTier(p2Stats.correct + 1);
+             if (tier) {
+                const winnerNameStr = isSinglePlayer ? "Robot" : p2Name;
+                const persona = detectPersona(winnerNameStr);
+                const diffKey = difficulty === "Hard" ? "Hard" : "Medium";
+                const tierData = prizesData[diffKey].tiers[tier];
+                const prizes9 = buildBalloonSlots(tierData.prizes[persona]);
+                setGrandPrizeState({ tier, tierData, persona, prizes9, phase: "eligible", revealedPrize: null });
+             }
+          }
         }
       } else {
         playWrongSound();
@@ -1292,6 +1608,7 @@ export default function RacingGame() {
     setTimeLeft(getTimerDuration(subject)); setWinner(null); setGameStarted(false); setEndReason(null);
     setRoundKey(k => k + 1);
     questionStartTimeRef.current = null;
+    setGrandPrizeState(null);
   };
 
   return (
@@ -1309,6 +1626,10 @@ export default function RacingGame() {
         @keyframes shake    { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
         @keyframes floatEmoteRight { 0% { transform: translate(0, 0) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translate(20px, -20px) scale(1.2); } 80% { opacity: 1; } 100% { transform: translate(120px, -60px) scale(1); opacity: 0; } }
         @keyframes floatEmoteLeft { 0% { transform: translate(0, 0) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translate(-20px, -20px) scale(1.2); } 80% { opacity: 1; } 100% { transform: translate(-120px, -60px) scale(1); opacity: 0; } }
+        @keyframes balloonFloat { 0% { transform: translateY(0px) rotate(-3deg); } 50% { transform: translateY(-14px) rotate(3deg); } 100% { transform: translateY(0px) rotate(-3deg); } }
+        @keyframes balloonPop { 0% { transform: scale(1); opacity: 1; } 40% { transform: scale(1.4); opacity: 0.8; } 100% { transform: scale(0); opacity: 0; } }
+        @keyframes burstParticle { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+        @keyframes prizeReveal { 0% { transform: scale(0) rotate(-10deg); opacity: 0; } 70% { transform: scale(1.15) rotate(3deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
         ::-webkit-scrollbar { display: none; }
       `}</style>
 
@@ -1515,6 +1836,15 @@ export default function RacingGame() {
             avgTime: p2Stats.attempts ? p2Stats.totalAnswerTimeMs / p2Stats.attempts : 0,
             p1Vehicle, p2Vehicle
           }}
+        />
+      )}
+
+      {grandPrizeState && (
+        <GrandPrizeModal
+          state={grandPrizeState}
+          winnerName={winner === 1 ? displayP1Name : displayP2Name}
+          onPhaseChange={setGrandPrizeState}
+          onClose={restart}
         />
       )}
 

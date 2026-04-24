@@ -1,0 +1,215 @@
+{
+  "Medium": {
+    "tiers": {
+      "bronze": {
+        "label": "🥉 GREAT JOB!",
+        "minScorePct": 70,
+        "color": "#CD7F32",
+        "glowColor": "#8B5500",
+        "prizes": {
+          "child": [
+            { "id": "b_c_1", "name": "Jajan naura 2 ribu", "emoji": "🍦" }
+          ],
+          "dad": [
+            { "id": "b_d_1", "name": "Dipijat Kepala 5 Menit", "emoji": "💇" },
+            { "id": "b_d_2", "name": "Dipijat Punggung 5 Menit", "emoji": "💇" },
+            { "id": "b_d_3", "name": "Injak Punggung 5 Menit", "emoji": "💇" },
+            { "id": "b_d_4", "name": "Pijat Kaki 5 Menit", "emoji": "💇" },
+            { "id": "b_d_5", "name": "Dipeluk Eme", "emoji": "😘" }
+          ],
+          "mom": [
+            { "id": "b_m_1", "name": "Dipijat Kepala 5 Menit", "emoji": "💆" },
+            { "id": "b_m_2", "name": "Dipijat Punggung 5 Menit", "emoji": "💆" },
+            { "id": "b_m_3", "name": "Injak Punggung 5 Menit", "emoji": "💆" },
+            { "id": "b_m_4", "name": "Pijat Kaki 5 Menit", "emoji": "💆" },
+            { "id": "b_m_5", "name": "Dipeluk Eme", "emoji": "😘" }
+          ]
+        }
+      },
+      "silver": {
+        "label": "🥈 IMPRESSIVE!",
+        "minScorePct": 80,
+        "color": "#C0C0C0",
+        "glowColor": "#9E9E9E",
+        "prizes": {
+          "child": [
+            { "id": "s_c_1", "name": "Jajan Madura 5rb", "emoji": "🍭" },
+            { "id": "s_c_2", "name": "Nonton Youtube 30 Menit", "emoji": "💻" },
+            { "id": "s_c_3", "name": "Main Diluar 30 Menit", "emoji": "⚽" },
+            { "id": "s_c_4", "name": "Menggambar", "emoji": "🎨" }
+          ],
+          "dad": [
+            { "id": "b_d_1", "name": "Dipijat Kepala 10 Menit", "emoji": "💇" },
+            { "id": "b_d_2", "name": "Dipijat Punggung 10 Menit", "emoji": "💇" },
+            { "id": "b_d_3", "name": "Injak Punggung 10 Menit", "emoji": "💇" },
+            { "id": "b_d_4", "name": "Pijat Kaki 10 Menit", "emoji": "💇" },
+            { "id": "b_d_5", "name": "Dipeluk Eme", "emoji": "😘" }
+          ],
+          "mom": [
+            { "id": "b_m_1", "name": "Dipijat Kepala 10 Menit", "emoji": "💆" },
+            { "id": "b_m_2", "name": "Dipijat Punggung 10 Menit", "emoji": "💆" },
+            { "id": "b_m_3", "name": "Injak Punggung 10 Menit", "emoji": "💆" },
+            { "id": "b_m_4", "name": "Pijat Kaki 10 Menit", "emoji": "💆" },
+            { "id": "b_m_5", "name": "Dipeluk Eme", "emoji": "😘" }
+          ]
+        }
+      },
+      "gold": {
+        "label": "🥇 AMAZING!",
+        "minScorePct": 90,
+        "color": "#FFD700",
+        "glowColor": "#FFA500",
+        "prizes": {
+          "child": [
+            { "id": "s_c_1", "name": "Jajan Madura 8rb", "emoji": "🍭" },
+            { "id": "s_c_2", "name": "Nonton Youtube 45 Menit", "emoji": "💻" },
+            { "id": "s_c_3", "name": "Main Diluar 45 Menit", "emoji": "⚽" },
+            { "id": "s_c_4", "name": "Main Game 30 Menit", "emoji": "🎮" }
+          ],
+          "dad": [
+            { "id": "b_d_1", "name": "Dipijat Kepala 15 Menit", "emoji": "💇" },
+            { "id": "b_d_2", "name": "Dipijat Punggung 15 Menit", "emoji": "💇" },
+            { "id": "b_d_3", "name": "Injak Punggung 15 Menit", "emoji": "💇" },
+            { "id": "b_d_4", "name": "Pijat Kaki 15 Menit", "emoji": "💇" },
+            { "id": "b_d_5", "name": "Dipeluk Eme", "emoji": "😘" }
+          ],
+          "mom": [
+            { "id": "b_m_1", "name": "Dipijat Kepala 15 Menit", "emoji": "💆" },
+            { "id": "b_m_2", "name": "Dipijat Punggung 15 Menit", "emoji": "💆" },
+            { "id": "b_m_3", "name": "Injak Punggung 15 Menit", "emoji": "💆" },
+            { "id": "b_m_4", "name": "Pijat Kaki 15 Menit", "emoji": "💆" },
+            { "id": "b_m_5", "name": "Dipeluk Eme", "emoji": "😘" }
+          ]
+        }
+      },
+      "perfect": {
+        "label": "💎 PERFECT SCORE!",
+        "minScorePct": 100,
+        "color": "#00E5FF",
+        "glowColor": "#0090A8",
+        "prizes": {
+          "child": [
+            { "id": "s_c_1", "name": "Jajan Alfamidi 20rb", "emoji": "💵" },
+            { "id": "s_c_2", "name": "Nonton Youtube 1 Jam", "emoji": "🖥️" },          
+            { "id": "s_c_3", "name": "Main Game 1 Jam", "emoji": "🎮" }
+          ],
+          "dad": [
+            { "id": "b_d_1", "name": "Dipijat Kepala dan Punggung 15 Menit", "emoji": "💆" },          
+            { "id": "b_d_2", "name": "Injak Punggung 20 Menit", "emoji": "💇" },
+            { "id": "b_d_3", "name": "Dipeluk Eme", "emoji": "😘" }
+          ],
+          "mom": [
+            { "id": "b_m_1", "name": "Dipijat Kepala dan Punggung 15 Menit", "emoji": "💇" },          
+            { "id": "b_m_2", "name": "Injak Punggung 20 Menit", "emoji": "💇" },
+            { "id": "b_m_3", "name": "Dipeluk Eme", "emoji": "😘" }
+          ]
+        }
+      }
+    }
+  },
+  "Hard": {
+    "tiers": {
+      "bronze": {
+        "label": "🥉 GREAT JOB (HARD)!",
+        "minScorePct": 70,
+        "color": "#CD7F32",
+        "glowColor": "#8B5500",
+        "prizes": {
+          "child": [
+            { "id": "h_b_c_1", "name": "Jajan naura 5 ribu", "emoji": "🍦" }
+          ],
+          "dad": [
+            { "id": "h_b_d_1", "name": "Dipijat Kepala 10 Menit", "emoji": "💇" },
+            { "id": "h_b_d_2", "name": "Dipijat Punggung 10 Menit", "emoji": "💇" },
+            { "id": "h_b_d_3", "name": "Injak Punggung 10 Menit", "emoji": "💇" },
+            { "id": "h_b_d_4", "name": "Pijat Kaki 10 Menit", "emoji": "💇" },
+            { "id": "h_b_d_5", "name": "Dipeluk Eme (Lama)", "emoji": "😘" }
+          ],
+          "mom": [
+            { "id": "h_b_m_1", "name": "Dipijat Kepala 10 Menit", "emoji": "💆" },
+            { "id": "h_b_m_2", "name": "Dipijat Punggung 10 Menit", "emoji": "💆" },
+            { "id": "h_b_m_3", "name": "Injak Punggung 10 Menit", "emoji": "💆" },
+            { "id": "h_b_m_4", "name": "Pijat Kaki 10 Menit", "emoji": "💆" },
+            { "id": "h_b_m_5", "name": "Dipeluk Eme (Lama)", "emoji": "😘" }
+          ]
+        }
+      },
+      "silver": {
+        "label": "🥈 IMPRESSIVE (HARD)!",
+        "minScorePct": 80,
+        "color": "#C0C0C0",
+        "glowColor": "#9E9E9E",
+        "prizes": {
+          "child": [
+            { "id": "h_s_c_1", "name": "Jajan Madura 10rb", "emoji": "🍭" },
+            { "id": "h_s_c_2", "name": "Nonton Youtube 45 Menit", "emoji": "💻" },
+            { "id": "h_s_c_3", "name": "Main Diluar 45 Menit", "emoji": "⚽" },
+            { "id": "h_s_c_4", "name": "Menggambar Bebas", "emoji": "🎨" }
+          ],
+          "dad": [
+            { "id": "h_s_d_1", "name": "Dipijat Kepala 15 Menit", "emoji": "💇" },
+            { "id": "h_s_d_2", "name": "Dipijat Punggung 15 Menit", "emoji": "💇" },
+            { "id": "h_s_d_3", "name": "Injak Punggung 15 Menit", "emoji": "💇" },
+            { "id": "h_s_d_4", "name": "Pijat Kaki 15 Menit", "emoji": "💇" }
+          ],
+          "mom": [
+            { "id": "h_s_m_1", "name": "Dipijat Kepala 15 Menit", "emoji": "💆" },
+            { "id": "h_s_m_2", "name": "Dipijat Punggung 15 Menit", "emoji": "💆" },
+            { "id": "h_s_m_3", "name": "Injak Punggung 15 Menit", "emoji": "💆" },
+            { "id": "h_s_m_4", "name": "Pijat Kaki 15 Menit", "emoji": "💆" }
+          ]
+        }
+      },
+      "gold": {
+        "label": "🥇 AMAZING (HARD)!",
+        "minScorePct": 90,
+        "color": "#FFD700",
+        "glowColor": "#FFA500",
+        "prizes": {
+          "child": [
+            { "id": "h_g_c_1", "name": "Jajan Madura 15rb", "emoji": "🍭" },
+            { "id": "h_g_c_2", "name": "Nonton Youtube 1 Jam", "emoji": "💻" },
+            { "id": "h_g_c_3", "name": "Main Diluar 1 Jam", "emoji": "⚽" },
+            { "id": "h_g_c_4", "name": "Main Game 45 Menit", "emoji": "🎮" }
+          ],
+          "dad": [
+            { "id": "h_g_d_1", "name": "Dipijat Kepala 20 Menit", "emoji": "💇" },
+            { "id": "h_g_d_2", "name": "Dipijat Punggung 20 Menit", "emoji": "💇" },
+            { "id": "h_g_d_3", "name": "Injak Punggung 20 Menit", "emoji": "💇" },
+            { "id": "h_g_d_4", "name": "Pijat Kaki 20 Menit", "emoji": "💇" }
+          ],
+          "mom": [
+            { "id": "h_g_m_1", "name": "Dipijat Kepala 20 Menit", "emoji": "💆" },
+            { "id": "h_g_m_2", "name": "Dipijat Punggung 20 Menit", "emoji": "💆" },
+            { "id": "h_g_m_3", "name": "Injak Punggung 20 Menit", "emoji": "💆" },
+            { "id": "h_g_m_4", "name": "Pijat Kaki 20 Menit", "emoji": "💆" }
+          ]
+        }
+      },
+      "perfect": {
+        "label": "💎 PERFECT SCORE (HARD)!",
+        "minScorePct": 100,
+        "color": "#00E5FF",
+        "glowColor": "#0090A8",
+        "prizes": {
+          "child": [
+            { "id": "h_p_c_1", "name": "Jajan Alfamidi 30rb", "emoji": "💵" },
+            { "id": "h_p_c_2", "name": "Nonton Youtube 1.5 Jam", "emoji": "🖥️" },          
+            { "id": "h_p_c_3", "name": "Main Game 1.5 Jam", "emoji": "🎮" },
+            { "id": "h_p_c_4", "name": "Beli Sticker ke DIY 30rb", "emoji": "🎁" }
+          ],
+          "dad": [
+            { "id": "h_p_d_1", "name": "Dipijat Kepala & Punggung 30 Menit", "emoji": "💆" },          
+            { "id": "h_p_d_2", "name": "Injak Punggung 30 Menit", "emoji": "💇" },
+            { "id": "h_p_d_3", "name": "Voucher Bebas Tugas Rumah 1 Hari", "emoji": "🛋️" }
+          ],
+          "mom": [
+            { "id": "h_p_m_1", "name": "Dipijat Kepala & Punggung 30 Menit", "emoji": "💇" },          
+            { "id": "h_p_m_2", "name": "Injak Punggung 30 Menit", "emoji": "💇" },
+            { "id": "h_p_m_3", "name": "Voucher Bebas Masak 1 Hari", "emoji": "🍲" }
+          ]
+        }
+      }
+    }
+  }
+}
