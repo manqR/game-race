@@ -54,7 +54,11 @@ const MISS_CHEERS = ["Nice try!", "Keep going!", "You can do it!", "Almost there
 const TIMEOUT_CHEERS = ["Time's up! Next one!", "Quick quick! Next round!", "No worries, try the next question!"];
 
 const TOTAL_QUESTIONS = 10;
-const getTimerDuration = (subject) => subject === "Math" ? 30 : 15;
+const getTimerDuration = (subject, difficulty = "Easy") => {
+  if (difficulty === "Hard") return 60;
+  if (difficulty === "Medium") return 30;
+  return subject === "Math" ? 30 : 15;
+};
 const getDisplayName = (name, player) => (name || "").trim() || `Player ${player}`;
 
 // ─── SVG Vehicles ─────────────────────────────────────────────────────────────
@@ -1280,7 +1284,7 @@ export default function RacingGame() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const [timeLeft, setTimeLeft] = useState(() => getTimerDuration("Math"));
+  const [timeLeft, setTimeLeft] = useState(() => getTimerDuration("Math", "Easy"));
   const [winner, setWinner] = useState(null);
   const [roundKey, setRoundKey] = useState(0);
 
@@ -1362,15 +1366,17 @@ export default function RacingGame() {
 
           // Check for Grand Prize based on correct answers
           if (difficulty !== "Easy") {
-             const winnerStats = scoreWinner === 1 ? p1Stats : p2Stats;
-             const winnerNameStr = scoreWinner === 1 ? p1Name : (isSinglePlayer ? "Robot" : p2Name);
-             const tier = getTier(winnerStats.correct);
-             if (tier) {
-                const persona = detectPersona(winnerNameStr);
-                const diffKey = difficulty === "Hard" ? "Hard" : "Medium";
-                const tierData = prizesData[diffKey].tiers[tier];
-                const prizes9 = buildBalloonSlots(tierData.prizes[persona]);
-                setGrandPrizeState({ tier, tierData, persona, prizes9, phase: "eligible", revealedPrize: null });
+             if (!(isSinglePlayer && scoreWinner === 2)) {
+                 const winnerStats = scoreWinner === 1 ? p1Stats : p2Stats;
+                 const winnerNameStr = scoreWinner === 1 ? p1Name : p2Name;
+                 const tier = getTier(winnerStats.correct);
+                 if (tier) {
+                    const persona = detectPersona(winnerNameStr);
+                    const diffKey = difficulty === "Hard" ? "Hard" : "Medium";
+                    const tierData = prizesData[diffKey].tiers[tier];
+                    const prizes9 = buildBalloonSlots(tierData.prizes[persona]);
+                    setGrandPrizeState({ tier, tierData, persona, prizes9, phase: "eligible", revealedPrize: null });
+                 }
              }
           }
         }
@@ -1380,11 +1386,11 @@ export default function RacingGame() {
       setQuestionIndex(next);
       setP1Feedback(null); setP2Feedback(null);
       setP1Answered(false); setP2Answered(false);
-      setTimeLeft(getTimerDuration(subject));
+      setTimeLeft(getTimerDuration(subject, difficulty));
       setRoundKey(k => k + 1);
       questionStartTimeRef.current = Date.now();
     }, 1400);
-  }, [questionIndex, p1Progress, p2Progress, difficulty]);
+  }, [questionIndex, p1Progress, p2Progress, difficulty, p1Stats, p2Stats, p1Name, p2Name, isSinglePlayer]);
 
   useEffect(() => () => {
     clearInterval(timerRef.current);
@@ -1566,10 +1572,10 @@ export default function RacingGame() {
              return nc;
           });
 
-          if (difficulty !== "Easy") {
+          if (difficulty !== "Easy" && !isSinglePlayer) {
              const tier = getTier(p2Stats.correct + 1);
              if (tier) {
-                const winnerNameStr = isSinglePlayer ? "Robot" : p2Name;
+                const winnerNameStr = p2Name;
                 const persona = detectPersona(winnerNameStr);
                 const diffKey = difficulty === "Hard" ? "Hard" : "Medium";
                 const tierData = prizesData[diffKey].tiers[tier];
@@ -1605,7 +1611,7 @@ export default function RacingGame() {
     setP1Answered(false); setP2Answered(false);
     setCheer(null);
     setCountdownDisplay(null);
-    setTimeLeft(getTimerDuration(subject)); setWinner(null); setGameStarted(false); setEndReason(null);
+    setTimeLeft(getTimerDuration(subject, difficulty)); setWinner(null); setGameStarted(false); setEndReason(null);
     setRoundKey(k => k + 1);
     questionStartTimeRef.current = null;
     setGrandPrizeState(null);
@@ -1654,7 +1660,7 @@ export default function RacingGame() {
             coins={coins} unlocked={unlocked} buyItem={buyItem} deferredPrompt={deferredPrompt} setDeferredPrompt={setDeferredPrompt}
             onStart={() => {
               setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, subject));
-              setTimeLeft(getTimerDuration(subject));
+              setTimeLeft(getTimerDuration(subject, difficulty));
               let count = 3;
               setCountdownDisplay(count);
               playTickSound();
@@ -1710,7 +1716,7 @@ export default function RacingGame() {
                     {TOTAL_QUESTIONS}
                   </span>
                 </div>
-                <TimerRing timeLeft={timeLeft} total={getTimerDuration(subject)} />
+                <TimerRing timeLeft={timeLeft} total={getTimerDuration(subject, difficulty)} />
               </div>
 
               {/* 🔄 Reset button */}
