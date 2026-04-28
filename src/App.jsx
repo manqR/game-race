@@ -13,6 +13,7 @@ const shuffleArray = (items) => {
 import { englishQuestions } from "./data/englishQuestions";
 import { mathQuestions } from "./data/mathQuestions";
 import prizesData from "./data/prizes.json";
+import { buildAIQuestionBank } from "./data/questionGenerator";
 
 // ─── Question Generator ───────────────────────────────────────────────────────
 const generateQuestions = (difficulty, numQuestions, subject = "Math") => {
@@ -1232,6 +1233,8 @@ export default function RacingGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [countdownDisplay, setCountdownDisplay] = useState(null);
   const [endReason, setEndReason] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [offlineToast, setOfflineToast] = useState(false);
 
   const [p1Name, setP1Name] = useState("Player 1");
   const [p2Name, setP2Name] = useState("Player 2");
@@ -1597,10 +1600,11 @@ export default function RacingGame() {
     }
   };
 
-  const restart = () => {
+  const restart = async () => {
     clearInterval(timerRef.current);
     clearTimeout(cheerTimeoutRef.current);
-    setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, subject));
+    setWinner(null); setEndReason(null); setGameStarted(false);
+    setGrandPrizeState(null);
     setQuestionIndex(0); setP1Progress(0); setP2Progress(0);
     setP1Feedback(null); setP2Feedback(null);
     setP1Streak(0); setP2Streak(0);
@@ -1611,10 +1615,24 @@ export default function RacingGame() {
     setP1Answered(false); setP2Answered(false);
     setCheer(null);
     setCountdownDisplay(null);
-    setTimeLeft(getTimerDuration(subject, difficulty)); setWinner(null); setGameStarted(false); setEndReason(null);
+    setTimeLeft(getTimerDuration(subject, difficulty));
     setRoundKey(k => k + 1);
     questionStartTimeRef.current = null;
-    setGrandPrizeState(null);
+
+    // Regenerate questions via Grok AI
+    setIsGenerating(true);
+    try {
+      const { bank, usedAI } = await buildAIQuestionBank(subject, difficulty, TOTAL_QUESTIONS);
+      setQuestionBank(bank);
+      if (!usedAI) {
+        setOfflineToast(true);
+        setTimeout(() => setOfflineToast(false), 3500);
+      }
+    } catch {
+      setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, subject));
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -1630,6 +1648,7 @@ export default function RacingGame() {
         @keyframes popIn    { from { opacity:0; transform:scale(0.65); } to { opacity:1; transform:scale(1); } }
         @keyframes bounce   { from { transform: translateY(0); } to { transform: translateY(-12px); } }
         @keyframes shake    { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+        @keyframes spin     { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes floatEmoteRight { 0% { transform: translate(0, 0) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translate(20px, -20px) scale(1.2); } 80% { opacity: 1; } 100% { transform: translate(120px, -60px) scale(1); opacity: 0; } }
         @keyframes floatEmoteLeft { 0% { transform: translate(0, 0) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translate(-20px, -20px) scale(1.2); } 80% { opacity: 1; } 100% { transform: translate(-120px, -60px) scale(1); opacity: 0; } }
         @keyframes balloonFloat { 0% { transform: translateY(0px) rotate(-3deg); } 50% { transform: translateY(-14px) rotate(3deg); } 100% { transform: translateY(0px) rotate(-3deg); } }
@@ -1658,8 +1677,20 @@ export default function RacingGame() {
             p1Name={p1Name} setP1Name={setP1Name} p1VehicleId={p1VehicleId} setP1VehicleId={setP1VehicleId}
             p2Name={p2Name} setP2Name={setP2Name} p2VehicleId={p2VehicleId} setP2VehicleId={setP2VehicleId}
             coins={coins} unlocked={unlocked} buyItem={buyItem} deferredPrompt={deferredPrompt} setDeferredPrompt={setDeferredPrompt}
-            onStart={() => {
-              setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, subject));
+            onStart={async () => {
+              setIsGenerating(true);
+              try {
+                const { bank, usedAI } = await buildAIQuestionBank(subject, difficulty, TOTAL_QUESTIONS);
+                setQuestionBank(bank);
+                if (!usedAI) {
+                  setOfflineToast(true);
+                  setTimeout(() => setOfflineToast(false), 3500);
+                }
+              } catch {
+                setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, subject));
+              } finally {
+                setIsGenerating(false);
+              }
               setTimeLeft(getTimerDuration(subject, difficulty));
               let count = 3;
               setCountdownDisplay(count);
@@ -1852,6 +1883,56 @@ export default function RacingGame() {
           onPhaseChange={setGrandPrizeState}
           onClose={restart}
         />
+      )}
+
+      {/* AI Generating Overlay */}
+      {isGenerating && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1001,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          background: "rgba(4,4,20,0.92)", backdropFilter: "blur(14px)",
+          gap: 24
+        }}>
+          {/* Spinning Ring */}
+          <div style={{
+            width: 90, height: 90, borderRadius: "50%",
+            border: "5px solid rgba(167,139,250,0.15)",
+            borderTop: "5px solid #A78BFA",
+            animation: "spin 0.9s linear infinite"
+          }} />
+          <div style={{
+            fontFamily: "'Fredoka One', cursive",
+            fontSize: "clamp(22px,3vw,32px)",
+            background: "linear-gradient(135deg, #A78BFA, #60A5FA)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
+          }}>
+            🤖 Grok AI is crafting questions...
+          </div>
+          <div style={{
+            color: "rgba(255,255,255,0.45)",
+            fontFamily: "Nunito, sans-serif",
+            fontSize: 15
+          }}>
+            Generating fresh questions just for you!
+          </div>
+        </div>
+      )}
+
+      {/* Offline Fallback Toast */}
+      {offlineToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          zIndex: 1002, background: "rgba(20,20,40,0.95)",
+          border: "1px solid rgba(255,184,0,0.4)", borderRadius: 16,
+          padding: "10px 22px", display: "flex", alignItems: "center", gap: 10,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          animation: "popIn 0.3s cubic-bezier(0.34,1.56,0.64,1)"
+        }}>
+          <span style={{ fontSize: 20 }}>🔌</span>
+          <span style={{ color: "#FFD700", fontFamily: "Nunito, sans-serif", fontWeight: 800, fontSize: 14 }}>
+            Offline mode — using local questions
+          </span>
+        </div>
       )}
 
       {/* Huge Countdown Overlay */}
