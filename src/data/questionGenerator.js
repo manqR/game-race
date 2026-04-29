@@ -1,13 +1,13 @@
 // questionGenerator.js
-// Calls the Grok (xAI) API to generate dynamic questions each game session.
+// Calls the Groq API to generate dynamic questions each game session.
 // Falls back to the local static question banks if the API is unavailable.
 
 import { mathQuestions } from "./mathQuestions";
 import { englishQuestions } from "./englishQuestions";
 
-const GROK_API_URL = "https://api.x.ai/v1/chat/completions";
-const GROK_MODEL = "grok-3-mini";
-const API_KEY = import.meta.env.VITE_GROK_API_KEY;
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL = "llama-3.3-70b-versatile"; // Fast + accurate Groq model
+const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
 // ─── Prompt Templates ────────────────────────────────────────────────────────
 
@@ -128,16 +128,18 @@ Rules:
 - Use different Indonesian names (Arka, Malika, Nadhif, Zaina, Alula, Raffa, Kara, Adist, Raqila)
 - Use varied contexts, animals, classroom items
 - For spelling_tap: "options" must be individual letters that spell the answer (may include shuffled extra letter)
+- IMPORTANT: For "reading" or "completion" questions, you MUST include the short story/context (1-2 sentences) inside the "question" string itself (e.g., "Raffa likes to eat apples. What is his favorite food?").
 
 Question types needed (at least 5 each):
 1. type: "grammar" — "..... [number] [noun] [location]." with There is / There are
-2. type: "reading" — reading comprehension about animals or classroom
+2. type: "reading" — short reading comprehension (story must be in the question field)
 3. type: "spelling_tap" — image: emoji, question: "Eja bahasa Inggrisnya [Indonesian word]!", options: individual letters, answer: English word (lowercase)
-4. type: "completion" — sentence completion based on a short scenario
+4. type: "completion" — sentence completion based on a short scenario (scenario must be in the question field)
 
 Example format:
 [
   {"type":"grammar","level":"medium","question":"..... five students in the class.","options":["There are","There is"],"answer":"There are"},
+  {"type":"reading","level":"medium","question":"Raffa has a red apple. He eats it every day. What color is his apple?","options":["Red","Blue"],"answer":"Red"},
   {"type":"spelling_tap","level":"medium","image":"🐱","question":"Eja bahasa Inggrisnya kucing!","options":["c","a","t"],"answer":"cat"}
 ]`,
 
@@ -154,16 +156,19 @@ Rules:
 - Use varied Indonesian names and contexts
 - For spelling_tap: options are individual letters (may repeat), answer is the English word lowercase
 - Wrong options for rearrange must be grammatically plausible but incorrect
+- IMPORTANT: For reading comprehension, you MUST include the short story/context (1-2 sentences) inside the "question" string itself.
 
 Question types needed (at least 6 each):
 1. type: "rearrange" — "Rearrange: [scrambled words]" — options are full sentence strings
 2. type: "translation" — translate Indonesian to English or vice versa
 3. type: "spelling_tap" — image: emoji, question in Indonesian, options: individual letters, answer: English word
+4. type: "reading" — short story included in the question, followed by an inference question.
 
 Example format:
 [
   {"type":"rearrange","level":"hard","question":"Rearrange: has – he – got – new – bag – a","options":["He has got a new bag","He got has a new bag"],"answer":"He has got a new bag"},
   {"type":"translation","level":"hard","question":"Apa arti dari: 'There are four chickens'?","options":["Ada empat ayam","Ada satu ayam"],"answer":"Ada empat ayam"},
+  {"type":"reading","level":"hard","question":"Zaina is holding an umbrella because water is falling from the sky. What is the weather like?","options":["Rainy","Sunny"],"answer":"Rainy"},
   {"type":"spelling_tap","level":"hard","image":"✏️","question":"Eja bahasa Inggrisnya pensil!","options":["p","e","n","c","i","l"],"answer":"pencil"}
 ]`,
 };
@@ -215,7 +220,7 @@ const getLocalFallback = (subject, difficulty) => {
 // ─── Main Generator ───────────────────────────────────────────────────────────
 
 /**
- * Calls Grok API to generate questions.
+ * Calls Groq API to generate questions.
  * @param {string} subject  "Math" | "English"
  * @param {string} difficulty "Easy" | "Medium" | "Hard"
  * @param {number} count  how many questions needed per player
@@ -226,7 +231,7 @@ export const generateQuestionsWithAI = async (subject, difficulty, count = 10) =
 
   // No API key → immediate fallback
   if (!API_KEY) {
-    console.warn("[QuestionGenerator] No VITE_GROK_API_KEY found. Using local fallback.");
+    console.warn("[QuestionGenerator] No VITE_GROQ_API_KEY found. Using local fallback.");
     return { questions: getLocalFallback(subject, difficulty), usedAI: false };
   }
 
@@ -234,14 +239,14 @@ export const generateQuestionsWithAI = async (subject, difficulty, count = 10) =
   const systemPrompt = prompts[level] || prompts.easy;
 
   try {
-    const response = await fetch(GROK_API_URL, {
+    const response = await fetch(GROQ_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
-        model: GROK_MODEL,
+        model: GROQ_MODEL,
         messages: [
           {
             role: "system",
@@ -259,23 +264,31 @@ export const generateQuestionsWithAI = async (subject, difficulty, count = 10) =
     });
 
     if (!response.ok) {
-      throw new Error(`Grok API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     const rawContent = data?.choices?.[0]?.message?.content ?? "";
 
-    // Strip any markdown code fences if model wraps in ```json ... ```
-    const cleaned = rawContent
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```\s*$/, "")
-      .trim();
+    // Step 1: Strip <think>...</think> blocks (some reasoning models)
+    let cleaned = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
+    // Step 2: Strip markdown code fences (```json ... ``` or ``` ... ```)
+    cleaned = cleaned.replace(/^```(?:json)?\s*/im, "").replace(/\s*```\s*$/im, "").trim();
+
+    // Step 3: Extract the JSON array — find the first '[' to the last ']'
+    const arrayStart = cleaned.indexOf("[");
+    const arrayEnd = cleaned.lastIndexOf("]");
+    if (arrayStart === -1 || arrayEnd === -1 || arrayEnd <= arrayStart) {
+      throw new Error("Groq response contains no JSON array");
+    }
+    cleaned = cleaned.slice(arrayStart, arrayEnd + 1);
 
     let parsed;
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      throw new Error("Grok returned invalid JSON");
+      throw new Error("Groq returned invalid JSON");
     }
 
     const valid = validateQuestions(parsed, level);
@@ -289,7 +302,7 @@ export const generateQuestionsWithAI = async (subject, difficulty, count = 10) =
 
     return { questions: shuffleArray(valid), usedAI: true };
   } catch (err) {
-    console.error("[QuestionGenerator] Grok API failed, using local fallback:", err.message);
+    console.error("[QuestionGenerator] Groq API failed, using local fallback:", err.message);
     return { questions: getLocalFallback(subject, difficulty), usedAI: false };
   }
 };

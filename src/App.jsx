@@ -15,6 +15,10 @@ import { mathQuestions } from "./data/mathQuestions";
 import prizesData from "./data/prizes.json";
 import { buildAIQuestionBank } from "./data/questionGenerator";
 
+import SessionSetupModal from "./components/SessionSetupModal";
+import SessionExpiredModal from "./components/SessionExpiredModal";
+import SessionTimerBadge from "./components/SessionTimerBadge";
+
 // ─── Question Generator ───────────────────────────────────────────────────────
 const generateQuestions = (difficulty, numQuestions, subject = "Math") => {
   const players = [[], []];
@@ -1223,6 +1227,55 @@ function GrandPrizeModal({ state, winnerName, onPhaseChange, onClose }) {
   );
 }
 
+// ─── Session Helpers ─────────────────────────────────────────────────────────
+
+// Returns today as "YYYY-MM-DD" string
+function getTodayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Reads all session data from localStorage
+// Returns null if no session saved today
+function loadSession() {
+  const savedDate = localStorage.getItem("gameRace_session_date");
+  if (savedDate !== getTodayStr()) {
+    // Different day → clear old session data
+    ["gameRace_session_date","gameRace_session_start","gameRace_session_maxMinutes",
+     "gameRace_session_maxGames","gameRace_session_gamesPlayed"].forEach(k => localStorage.removeItem(k));
+    return null; // no session for today
+  }
+  return {
+    start: parseInt(localStorage.getItem("gameRace_session_start") || "0", 10),
+    maxMinutes: parseInt(localStorage.getItem("gameRace_session_maxMinutes") || "60", 10),
+    maxGames: parseInt(localStorage.getItem("gameRace_session_maxGames") || "10", 10),
+    gamesPlayed: parseInt(localStorage.getItem("gameRace_session_gamesPlayed") || "0", 10),
+    pin: localStorage.getItem("gameRace_session_pin") || "",
+  };
+}
+
+// Saves a new session to localStorage
+function saveSession(maxMinutes, maxGames, pin) {
+  localStorage.setItem("gameRace_session_date", getTodayStr());
+  localStorage.setItem("gameRace_session_start", Date.now().toString());
+  localStorage.setItem("gameRace_session_maxMinutes", maxMinutes.toString());
+  localStorage.setItem("gameRace_session_maxGames", maxGames.toString());
+  localStorage.setItem("gameRace_session_gamesPlayed", "0");
+  if (pin) localStorage.setItem("gameRace_session_pin", pin);
+}
+
+// Resets the session (parent used PIN to unlock)
+function resetSession() {
+  ["gameRace_session_date","gameRace_session_start","gameRace_session_maxMinutes",
+   "gameRace_session_maxGames","gameRace_session_gamesPlayed"].forEach(k => localStorage.removeItem(k));
+}
+
+// Increments game count
+function incrementGamesPlayed() {
+  const current = parseInt(localStorage.getItem("gameRace_session_gamesPlayed") || "0", 10);
+  localStorage.setItem("gameRace_session_gamesPlayed", (current + 1).toString());
+  return current + 1;
+}
+
 export default function RacingGame() {
   const [difficulty, setDifficulty] = useState("Easy");
   const [subject, setSubject] = useState("Math");
@@ -1235,6 +1288,17 @@ export default function RacingGame() {
   const [endReason, setEndReason] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [offlineToast, setOfflineToast] = useState(false);
+
+  // ── Session / Playtime Limit State ──────────────────────────────
+  const [session, setSession] = useState(() => loadSession());
+  // session = null means no session set up yet today
+  // session = { start, maxMinutes, maxGames, gamesPlayed, pin }
+
+  const [sessionSecondsLeft, setSessionSecondsLeft] = useState(null);
+  // null = no limit active. A number = countdown in seconds.
+
+  const [sessionExpiredReason, setSessionExpiredReason] = useState(null);
+  // null = not expired. "time" or "games" = expired.
 
   const [p1Name, setP1Name] = useState("Player 1");
   const [p2Name, setP2Name] = useState("Player 2");
@@ -1286,6 +1350,35 @@ export default function RacingGame() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
+
+  // ── Session Countdown Timer ──────────────────────────────────────
+  // This effect runs whenever `session` changes.
+  // It sets up a 1-second interval that counts down the remaining playtime.
+  useEffect(() => {
+    if (!session) return; // no session configured → do nothing
+
+    const sessionRef = { current: null }; // interval reference
+
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - session.start) / 1000); // seconds used
+      const totalAllowed = session.maxMinutes * 60;                    // total seconds allowed
+      const remaining = totalAllowed - elapsed;
+
+      if (remaining <= 0) {
+        // TIME IS UP
+        clearInterval(sessionRef.current);
+        setSessionSecondsLeft(0);
+        setSessionExpiredReason("time");
+      } else {
+        setSessionSecondsLeft(remaining);
+      }
+    };
+
+    tick(); // run immediately so badge shows right away
+    sessionRef.current = setInterval(tick, 1000);
+
+    return () => clearInterval(sessionRef.current); // cleanup
+  }, [session]);
 
   const [timeLeft, setTimeLeft] = useState(() => getTimerDuration("Math", "Easy"));
   const [winner, setWinner] = useState(null);
@@ -1601,6 +1694,18 @@ export default function RacingGame() {
   };
 
   const restart = async () => {
+    // Count this completed game and check the limit
+    // restart() is only called by "Play Again" after a game finishes.
+    // Mid-game "Reset" button does NOT call restart(), so abandoned games do NOT count.
+    const played = incrementGamesPlayed();
+    const currentSession = loadSession();
+    if (currentSession && played >= currentSession.maxGames) {
+      setSessionExpiredReason("games");
+      return; // stop here — don't reset the game, show the lock screen instead
+    }
+    // Sync state with latest localStorage values
+    setSession(loadSession());
+
     clearInterval(timerRef.current);
     clearTimeout(cheerTimeoutRef.current);
     setWinner(null); setEndReason(null); setGameStarted(false);
@@ -1619,7 +1724,7 @@ export default function RacingGame() {
     setRoundKey(k => k + 1);
     questionStartTimeRef.current = null;
 
-    // Regenerate questions via Grok AI
+    // Regenerate questions via Groq AI
     setIsGenerating(true);
     try {
       const { bank, usedAI } = await buildAIQuestionBank(subject, difficulty, TOTAL_QUESTIONS);
@@ -1906,7 +2011,7 @@ export default function RacingGame() {
             background: "linear-gradient(135deg, #A78BFA, #60A5FA)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
           }}>
-            🤖 Grok AI is crafting questions...
+            🤖 Groq AI is crafting questions...
           </div>
           <div style={{
             color: "rgba(255,255,255,0.45)",
@@ -1961,6 +2066,37 @@ export default function RacingGame() {
           p2Name={displayP2Name}
           score={p1Progress}
           onRestart={restart}
+        />
+      )}
+
+      {/* ── SESSION SETUP MODAL ── */}
+      {/* Show if no session was configured today */}
+      {!session && !sessionExpiredReason && (
+        <SessionSetupModal
+          existingPin={localStorage.getItem("gameRace_session_pin") || ""}
+          onConfirm={(maxMinutes, maxGames, pin) => {
+            saveSession(maxMinutes, maxGames, pin);
+            setSession(loadSession()); // re-read from localStorage
+          }}
+        />
+      )}
+
+      {/* ── SESSION TIMER BADGE ── */}
+      {session && sessionSecondsLeft !== null && !sessionExpiredReason && (
+        <SessionTimerBadge secondsLeft={sessionSecondsLeft} />
+      )}
+
+      {/* ── SESSION EXPIRED MODAL ── */}
+      {sessionExpiredReason && (
+        <SessionExpiredModal
+          reason={sessionExpiredReason}
+          pin={localStorage.getItem("gameRace_session_pin") || ""}
+          onUnlock={() => {
+            resetSession();
+            setSession(null);
+            setSessionExpiredReason(null);
+            setSessionSecondsLeft(null);
+          }}
         />
       )}
     </>
