@@ -93,86 +93,133 @@ Contoh format:
 };
 
 const ENGLISH_PROMPTS = {
-  easy: `You are a question generator for a children's English game (Grade 1 SD Indonesia, age 6-7).
+  easy: `You are an English exam question creator for Grade 1 SD Indonesia (age 6-7), following the PASAT Grade 1 Summative Assessment format.
 Generate exactly 30 UNIQUE multiple-choice English questions at EASY difficulty.
 Return ONLY a valid JSON array, no explanation whatsoever.
 
-Topics: classroom objects (pencil, eraser, ruler, crayons, scissors, glue, sharpener), farm animals (cow, chicken, horse, duck, pig, sheep), action verbs (run, sleep, read, dance, jump, walk, sit), basic grammar (have got / has got).
+Story-based context style: Start each question with 1-2 short story sentences in Indonesian/bilingual, then ask in English.
+Use Indonesian children's names: Mika, Rani, Budi, Sari, Dito, Ayu, Rafi, Lina.
 
 Rules:
-- Each object: "type", "level", "question", "options" (2-3 strings), "answer"
+- Each object must have: "type", "level", "question", "options" (exactly 3 strings: A, B, C), "answer"
 - "answer" MUST be exactly one of the "options"
 - "level" is always "easy"
-- Questions should use bilingual style: Indonesian context, English answers
-- Use DIFFERENT emojis for image fields
-- Make each question unique — vary the context, objects, and names
+- Use emoji in "image" field for visual questions
+- ALWAYS provide exactly 3 options (never 2)
+- Make wrong options plausible but clearly incorrect for Grade 1
 
 Question types needed (at least 5 each):
-1. type: "vocab" — image: emoji, question: "Gambar apakah ini?" or "Apa bahasa Inggrisnya [Indonesian word]?"
-2. type: "act_match" — image: action emoji, question about action verb in English
-3. type: "grammar" — fill in: "I/She/They ..... a [object]." with have got / has got
+
+1. type: "grammar" — Have got / Has got / Haven't got
+   - Story intro: "Mika is at school. She ..... a new pencil."
+   - Options always: ["have got", "has got", "haven't got"] or similar variations
+   - Subject must vary: I, She, He, We, They
+
+2. type: "vocab" — Classroom objects & farm animals with image emoji
+   - image: emoji of the object/animal
+   - question: "Mika wants to cut paper. She needs a ....."
+   - Options: tool names in English (Scissors, Ruler, Glue)
+   - OR: "Gambar apakah ini?" with animal/object emoji
+
+3. type: "act_match" — Action verbs with story context
+   - image: action emoji (📖 🏃 💃 🛌 ✏️)
+   - question short story then: "What is he/she doing?"
+   - Options: action verbs (Read, Run, Sleep, Dance, Jump, Walk)
 
 Example format:
 [
-  {"type":"vocab","level":"easy","image":"🐮","question":"Gambar apakah ini?","options":["Cow","Duck"],"answer":"Cow"},
-  {"type":"grammar","level":"easy","question":"We ..... a big farm.","options":["have got","has got"],"answer":"have got"}
+  {"type":"grammar","level":"easy","question":"Mika is at school. She ..... a new pencil case.","options":["have got","has got","haven't got"],"answer":"has got"},
+  {"type":"vocab","level":"easy","image":"✂️","question":"Budi wants to cut paper. He needs a .....","options":["Scissors","Ruler","Eraser"],"answer":"Scissors"},
+  {"type":"act_match","level":"easy","image":"📖","question":"Rani is sitting quietly at her desk. She likes to .....","options":["Sleep","Read","Run"],"answer":"Read"}
 ]`,
 
-  medium: `You are a question generator for a children's English game (Grade 1 SD Indonesia, age 6-7).
+  medium: `You are an English exam question creator for Grade 1 SD Indonesia (age 6-7), following the PASAT Grade 1 Summative Assessment format.
 Generate exactly 30 UNIQUE multiple-choice English questions at MEDIUM difficulty.
 Return ONLY a valid JSON array, no explanation whatsoever.
 
-Topics: there is / there are, animal characteristics & comparisons, simple reading comprehension, spelling of simple words (3-5 letters), sentence completion.
+Story-based context style: Begin each question with a 1-2 sentence story scenario, then pose the question.
+Use Indonesian children's names: Arka, Malika, Nadhif, Zaina, Alula, Raffa, Kara, Adist, Raqila.
 
 Rules:
-- Each object: "type", "level", "question", "options" (2-3 strings), "answer"
+- Each object must have: "type", "level", "question", "options" (exactly 3 strings), "answer"
 - "answer" MUST be exactly one of the "options"
 - "level" is always "medium"
-- Use different Indonesian names (Arka, Malika, Nadhif, Zaina, Alula, Raffa, Kara, Adist, Raqila)
-- Use varied contexts, animals, classroom items
-- For spelling_tap: "options" must be individual letters that spell the answer (may include shuffled extra letter)
-- IMPORTANT: For "reading" or "completion" questions, you MUST include the short story/context (1-2 sentences) inside the "question" string itself (e.g., "Raffa likes to eat apples. What is his favorite food?").
+- ALWAYS provide exactly 3 options
+- For "spelling_tap": options are individual LETTERS (may include 1 shuffled extra), answer is the word (lowercase)
+- Story/scenario MUST be inside the "question" field itself
 
-Question types needed (at least 5 each):
-1. type: "grammar" — "..... [number] [noun] [location]." with There is / There are
-2. type: "reading" — short reading comprehension (story must be in the question field)
-3. type: "spelling_tap" — image: emoji, question: "Eja bahasa Inggrisnya [Indonesian word]!", options: individual letters, answer: English word (lowercase)
-4. type: "completion" — sentence completion based on a short scenario (scenario must be in the question field)
+Question types needed (at least 6 each):
+
+1. type: "grammar" — There is / There are / There isn't
+   - Story: "My uncle has a farm. ..... three cows in the barn."
+   - Options: ["There is", "There are", "There isn't"]
+   - Vary: singular animals (1 horse → There is), plural (3 ducks → There are)
+
+2. type: "reading" — Short reading comprehension with inference
+   - Story (1-2 sentences) embedded IN the question field
+   - Ask: What does he/she have? What animal is it? What is the correct tool?
+   - Options: 3 choices
+
+3. type: "completion" — Descriptive logic / guessing animal or object
+   - Clue in question: "It has four legs. It gives us milk. It says 'Moo'. It is a ....."
+   - Options: animal/object names (Cow, Horse, Goat)
+   - OR tool clue: "We use it to draw colorful pictures. It is a ....."
+
+4. type: "spelling_tap" — Spell the English word letter-by-letter
+   - image: emoji of the word
+   - question in Indonesian: "Eja bahasa Inggrisnya [word]!"
+   - options: individual letters (3-5 letters), answer: the English word lowercase
 
 Example format:
 [
-  {"type":"grammar","level":"medium","question":"..... five students in the class.","options":["There are","There is"],"answer":"There are"},
-  {"type":"reading","level":"medium","question":"Raffa has a red apple. He eats it every day. What color is his apple?","options":["Red","Blue"],"answer":"Red"},
-  {"type":"spelling_tap","level":"medium","image":"🐱","question":"Eja bahasa Inggrisnya kucing!","options":["c","a","t"],"answer":"cat"}
+  {"type":"grammar","level":"medium","question":"Malika's uncle has a big farm. ..... five chickens near the barn.","options":["There is","There are","There isn't"],"answer":"There are"},
+  {"type":"reading","level":"medium","question":"Nadhif sees an animal with a long neck eating leaves from tall trees. What animal is it?","options":["Giraffe","Elephant","Horse"],"answer":"Giraffe"},
+  {"type":"completion","level":"medium","question":"It has four legs. It gives us milk. It says Moo. It is a .....","options":["Cow","Duck","Sheep"],"answer":"Cow"},
+  {"type":"spelling_tap","level":"medium","image":"🐑","question":"Eja bahasa Inggrisnya domba!","options":["s","h","e","e","p"],"answer":"sheep"}
 ]`,
 
-  hard: `You are a question generator for a children's English game (Grade 1 SD Indonesia, age 6-7).
+  hard: `You are an English exam question creator for Grade 1 SD Indonesia (age 6-7), following the PASAT Grade 1 Summative Assessment format.
 Generate exactly 30 UNIQUE multiple-choice English questions at HARD difficulty.
 Return ONLY a valid JSON array, no explanation whatsoever.
 
-Topics: sentence rearranging, English-Indonesian translation, complex spelling (5-9 letters), reading comprehension with inference.
+Story-based context style: All questions must begin with a 1-2 sentence story or scenario. Questions test deeper comprehension and grammar.
+Use varied Indonesian names and farm/classroom/daily-life contexts.
 
 Rules:
-- Each object: "type", "level", "question", "options" (2-3 strings), "answer"
-- "answer" MUST be exactly one of the "options"  
+- Each object must have: "type", "level", "question", "options" (exactly 3 strings), "answer"
+- "answer" MUST be exactly one of the "options"
 - "level" is always "hard"
-- Use varied Indonesian names and contexts
-- For spelling_tap: options are individual letters (may repeat), answer is the English word lowercase
-- Wrong options for rearrange must be grammatically plausible but incorrect
-- IMPORTANT: For reading comprehension, you MUST include the short story/context (1-2 sentences) inside the "question" string itself.
+- ALWAYS exactly 3 options
+- For rearrange: options are full grammatically plausible sentences, wrong options must look believable
+- Story context MUST be embedded in the "question" field itself
 
 Question types needed (at least 6 each):
-1. type: "rearrange" — "Rearrange: [scrambled words]" — options are full sentence strings
-2. type: "translation" — translate Indonesian to English or vice versa
-3. type: "spelling_tap" — image: emoji, question in Indonesian, options: individual letters, answer: English word
-4. type: "reading" — short story included in the question, followed by an inference question.
+
+1. type: "rearrange" — Reorder jumbled words into a correct sentence
+   - question: "Rearrange: I – got – have – new – toy – a"
+   - options: 3 full sentence strings (1 correct, 2 plausible but wrong)
+   - Focus on: have got / has got / haven't got / there is / there are structures
+
+2. type: "grammar" — Complex possession & quantity structures
+   - Story intro (1-2 sentences) then a fill-in gap
+   - Topics: haven't got, hasn't got, negative possession, or combined there is/are + have got
+   - Options: 3 grammatical choices
+
+3. type: "reading" — Reading comprehension with inference (requires thinking)
+   - Include a short story (2-3 sentences) inside the "question" field
+   - Ask inferential questions: Why? What does it mean? Which animal is bigger?
+   - Comparison questions: "Zaina has a horse. Raffa has a goat. Which animal is bigger?"
+
+4. type: "completion" — Sentence completion requiring grammar + vocabulary knowledge
+   - Story scenario then a gap: "Alula ..... got a red crayon. She uses it to color her drawing."
+   - Options: ["has", "have", "haven't"] — choose the correct form
 
 Example format:
 [
-  {"type":"rearrange","level":"hard","question":"Rearrange: has – he – got – new – bag – a","options":["He has got a new bag","He got has a new bag"],"answer":"He has got a new bag"},
-  {"type":"translation","level":"hard","question":"Apa arti dari: 'There are four chickens'?","options":["Ada empat ayam","Ada satu ayam"],"answer":"Ada empat ayam"},
-  {"type":"reading","level":"hard","question":"Zaina is holding an umbrella because water is falling from the sky. What is the weather like?","options":["Rainy","Sunny"],"answer":"Rainy"},
-  {"type":"spelling_tap","level":"hard","image":"✏️","question":"Eja bahasa Inggrisnya pensil!","options":["p","e","n","c","i","l"],"answer":"pencil"}
+  {"type":"rearrange","level":"hard","question":"Rearrange: has – she – got – new – bag – a","options":["She has got a new bag","She got has a new bag","Has she got new a bag"],"answer":"She has got a new bag"},
+  {"type":"grammar","level":"hard","question":"Dito has a dog but no cat. He ..... got a cat.","options":["has","haven't","hasn't"],"answer":"hasn't"},
+  {"type":"reading","level":"hard","question":"Zaina has a horse on her farm. Raffa has a goat. Which animal is bigger?","options":["Horse","Goat","Duck"],"answer":"Horse"},
+  {"type":"completion","level":"hard","question":"Kara wants to write her name. She ..... got a pencil in her bag.","options":["has","have","hasn't"],"answer":"has"}
 ]`,
 };
 
