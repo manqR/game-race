@@ -14,6 +14,7 @@ import { englishQuestions } from "./data/englishQuestions";
 import { mathQuestions } from "./data/mathQuestions";
 import prizesData from "./data/prizes.json";
 import { buildAIQuestionBank } from "./data/questionGenerator";
+import { saveGameHistory, getPlayerHistory, buildHistoryContext } from "./data/playerHistory";
 
 import SessionSetupModal from "./components/SessionSetupModal";
 import SessionExpiredModal from "./components/SessionExpiredModal";
@@ -1313,8 +1314,8 @@ export default function RacingGame() {
   const [p2Powerup, setP2Powerup] = useState(null);
 
   // Tracking stats
-  const [p1Stats, setP1Stats] = useState({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
-  const [p2Stats, setP2Stats] = useState({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
+  const [p1Stats, setP1Stats] = useState({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0, wrongTypes: [] });
+  const [p2Stats, setP2Stats] = useState({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0, wrongTypes: [] });
 
   const [p1Feedback, setP1Feedback] = useState(null);
   const [p2Feedback, setP2Feedback] = useState(null);
@@ -1399,6 +1400,85 @@ export default function RacingGame() {
 
   const p1Vehicle = VEHICLES[p1VehicleId];
   const p2Vehicle = isSinglePlayer ? VEHICLES.rocket : VEHICLES[p2VehicleId];
+
+  const historySavedRef = useRef(false);
+
+  // Reset historySavedRef when game starts
+  useEffect(() => {
+    if (gameStarted) {
+      historySavedRef.current = false;
+    }
+  }, [gameStarted]);
+
+  // Save history on game over
+  useEffect(() => {
+    if (gameOver && !historySavedRef.current) {
+      historySavedRef.current = true;
+
+      // Extract numbers or words used in Player 1 questions
+      const p1UsedWords = [];
+      const p1Bank = questionBank[0];
+      if (p1Bank) {
+        p1Bank.forEach(q => {
+          if (subject === "Math") {
+            const numMatches = q.question.match(/\d+/g);
+            if (numMatches) {
+              numMatches.forEach(n => {
+                const num = parseInt(n, 10);
+                if (!p1UsedWords.includes(num)) p1UsedWords.push(num);
+              });
+            }
+          } else {
+            if (q.answer && !p1UsedWords.includes(q.answer)) {
+              p1UsedWords.push(q.answer);
+            }
+          }
+        });
+      }
+
+      const p1AvgTime = p1Stats.attempts > 0 ? p1Stats.totalAnswerTimeMs / p1Stats.attempts : 0;
+      saveGameHistory(p1Name, subject, {
+        difficulty: difficulty,
+        weakTypes: p1Stats.wrongTypes || [],
+        usedNumbers: p1UsedWords,
+        avgAnswerTimeMs: p1AvgTime,
+        totalQuestions: TOTAL_QUESTIONS,
+        correctCount: p1Stats.correct
+      });
+
+      // Save player 2 history if not AI and not empty
+      if (!isSinglePlayer && p2Name && p2Name.trim().toLowerCase() !== "robot") {
+        const p2UsedWords = [];
+        const p2Bank = questionBank[1];
+        if (p2Bank) {
+          p2Bank.forEach(q => {
+            if (subject === "Math") {
+              const numMatches = q.question.match(/\d+/g);
+              if (numMatches) {
+                numMatches.forEach(n => {
+                  const num = parseInt(n, 10);
+                  if (!p2UsedWords.includes(num)) p2UsedWords.push(num);
+                });
+              }
+            } else {
+              if (q.answer && !p2UsedWords.includes(q.answer)) {
+                p2UsedWords.push(q.answer);
+              }
+            }
+          });
+        }
+        const p2AvgTime = p2Stats.attempts > 0 ? p2Stats.totalAnswerTimeMs / p2Stats.attempts : 0;
+        saveGameHistory(p2Name, subject, {
+          difficulty: difficulty,
+          weakTypes: p2Stats.wrongTypes || [],
+          usedNumbers: p2UsedWords,
+          avgAnswerTimeMs: p2AvgTime,
+          totalQuestions: TOTAL_QUESTIONS,
+          correctCount: p2Stats.correct
+        });
+      }
+    }
+  }, [gameOver, p1Stats, p2Stats, p1Name, p2Name, subject, difficulty, isSinglePlayer, questionBank]);
 
   const showCheer = useCallback((text, color, icon) => {
     clearTimeout(cheerTimeoutRef.current);
@@ -1569,9 +1649,14 @@ export default function RacingGame() {
 
     if (player === 1) {
       setP1Feedback(opt); setP1Answered(true);
-      setP1Stats(s => ({ ...s, attempts: s.attempts + 1, totalAnswerTimeMs: s.totalAnswerTimeMs + timeTaken }));
+      setP1Stats(s => ({
+        ...s,
+        attempts: s.attempts + 1,
+        totalAnswerTimeMs: s.totalAnswerTimeMs + timeTaken,
+        correct: correct ? s.correct + 1 : s.correct,
+        wrongTypes: correct ? s.wrongTypes : [...(s.wrongTypes || []), q.type]
+      }));
       if (correct) {
-        setP1Stats(s => ({ ...s, correct: s.correct + 1 }));
         playCorrectSound();
         const moveAmount = p1Powerup === "turbo" ? 2 : 1;
         if (p1Powerup === "turbo") setP1Powerup(null); // consume turbo
@@ -1630,9 +1715,14 @@ export default function RacingGame() {
       }
     } else {
       setP2Feedback(opt); setP2Answered(true);
-      setP2Stats(s => ({ ...s, attempts: s.attempts + 1, totalAnswerTimeMs: s.totalAnswerTimeMs + timeTaken }));
+      setP2Stats(s => ({
+        ...s,
+        attempts: s.attempts + 1,
+        totalAnswerTimeMs: s.totalAnswerTimeMs + timeTaken,
+        correct: correct ? s.correct + 1 : s.correct,
+        wrongTypes: correct ? s.wrongTypes : [...(s.wrongTypes || []), q.type]
+      }));
       if (correct) {
-        setP2Stats(s => ({ ...s, correct: s.correct + 1 }));
         playCorrectSound();
         const moveAmount = p2Powerup === "turbo" ? 2 : 1;
         if (p2Powerup === "turbo") setP2Powerup(null); // consume turbo
@@ -1715,8 +1805,8 @@ export default function RacingGame() {
     setP1Streak(0); setP2Streak(0);
     setP1Powerup(null); setP2Powerup(null);
     setActiveEmotes([]);
-    setP1Stats({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
-    setP2Stats({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0 });
+    setP1Stats({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0, wrongTypes: [] });
+    setP2Stats({ attempts: 0, correct: 0, maxStreak: 0, totalAnswerTimeMs: 0, wrongTypes: [] });
     setP1Answered(false); setP2Answered(false);
     setCheer(null);
     setCountdownDisplay(null);
@@ -1724,20 +1814,8 @@ export default function RacingGame() {
     setRoundKey(k => k + 1);
     questionStartTimeRef.current = null;
 
-    // Regenerate questions via Groq AI
-    setIsGenerating(true);
-    try {
-      const { bank, usedAI } = await buildAIQuestionBank(subject, difficulty, TOTAL_QUESTIONS);
-      setQuestionBank(bank);
-      if (!usedAI) {
-        setOfflineToast(true);
-        setTimeout(() => setOfflineToast(false), 3500);
-      }
-    } catch {
-      setQuestionBank(createQuestionBank(difficulty, TOTAL_QUESTIONS, subject));
-    } finally {
-      setIsGenerating(false);
-    }
+    // No pre-generation here. Player goes back to the Lobby first.
+    // Question bank will be regenerated when they click "START RACE" in the lobby.
   };
 
   return (
@@ -1785,7 +1863,9 @@ export default function RacingGame() {
             onStart={async () => {
               setIsGenerating(true);
               try {
-                const { bank, usedAI } = await buildAIQuestionBank(subject, difficulty, TOTAL_QUESTIONS);
+                const p1History = getPlayerHistory(p1Name, subject);
+                const historyContext = buildHistoryContext(p1History);
+                const { bank, usedAI } = await buildAIQuestionBank(subject, difficulty, TOTAL_QUESTIONS, historyContext);
                 setQuestionBank(bank);
                 if (!usedAI) {
                   setOfflineToast(true);
@@ -2011,7 +2091,7 @@ export default function RacingGame() {
             background: "linear-gradient(135deg, #A78BFA, #60A5FA)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
           }}>
-            🤖 Groq AI is crafting questions...
+            🤖 AI is crafting questions...
           </div>
           <div style={{
             color: "rgba(255,255,255,0.45)",

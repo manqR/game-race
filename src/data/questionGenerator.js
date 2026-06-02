@@ -5,9 +5,12 @@
 import { mathQuestions } from "./mathQuestions";
 import { englishQuestions } from "./englishQuestions";
 
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.3-70b-versatile"; // Fast + accurate Groq model
-const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GEMINI_MODEL = "gemini-3.1-flash-lite";
+// Feel free to swap to Gemma 2 by uncommenting the line below:
+// const GEMINI_MODEL = "gemma-2-9b-it";
+
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // ─── Prompt Templates ────────────────────────────────────────────────────────
 
@@ -220,55 +223,63 @@ const getLocalFallback = (subject, difficulty) => {
 // ─── Main Generator ───────────────────────────────────────────────────────────
 
 /**
- * Calls Groq API to generate questions.
+ * Calls Gemini/Gemma API to generate questions.
  * @param {string} subject  "Math" | "English"
  * @param {string} difficulty "Easy" | "Medium" | "Hard"
  * @param {number} count  how many questions needed per player
+ * @param {string} historyContext adaptive player history instructions
  * @returns {Promise<{ questions: object[], usedAI: boolean }>}
  */
-export const generateQuestionsWithAI = async (subject, difficulty, count = 10) => {
+export const generateQuestionsWithAI = async (subject, difficulty, count = 10, historyContext = "") => {
   const level = difficulty.toLowerCase();
 
   // No API key → immediate fallback
   if (!API_KEY) {
-    console.warn("[QuestionGenerator] No VITE_GROQ_API_KEY found. Using local fallback.");
+    console.warn("[QuestionGenerator] No VITE_GEMINI_API_KEY found. Using local fallback.");
     return { questions: getLocalFallback(subject, difficulty), usedAI: false };
   }
 
   const prompts = subject === "English" ? ENGLISH_PROMPTS : MATH_PROMPTS;
-  const systemPrompt = prompts[level] || prompts.easy;
+  const basePrompt = prompts[level] || prompts.easy;
+  const finalPrompt = historyContext ? `${basePrompt}\n\n${historyContext}` : basePrompt;
 
   try {
-    const response = await fetch(GROQ_API_URL, {
+    const response = await fetch(`${GEMINI_API_URL}?key=${API_KEY}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a JSON-only question generator. Always respond with a valid JSON array only. Never include markdown, explanation, or commentary of any kind.",
-          },
+        contents: [
           {
             role: "user",
-            content: systemPrompt,
-          },
+            parts: [
+              {
+                text: finalPrompt
+              }
+            ]
+          }
         ],
-        temperature: 0.9,
-        max_tokens: 8000,
+        systemInstruction: {
+          parts: [
+            {
+              text: "You are a JSON-only question generator. Always respond with a valid JSON array only. Never include markdown, explanation, or commentary of any kind."
+            }
+          ]
+        },
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.9
+        }
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    const rawContent = data?.choices?.[0]?.message?.content ?? "";
+    const rawContent = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
     // Step 1: Strip <think>...</think> blocks (some reasoning models)
     let cleaned = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
@@ -280,7 +291,7 @@ export const generateQuestionsWithAI = async (subject, difficulty, count = 10) =
     const arrayStart = cleaned.indexOf("[");
     const arrayEnd = cleaned.lastIndexOf("]");
     if (arrayStart === -1 || arrayEnd === -1 || arrayEnd <= arrayStart) {
-      throw new Error("Groq response contains no JSON array");
+      throw new Error("Gemini response contains no JSON array");
     }
     cleaned = cleaned.slice(arrayStart, arrayEnd + 1);
 
@@ -288,7 +299,7 @@ export const generateQuestionsWithAI = async (subject, difficulty, count = 10) =
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      throw new Error("Groq returned invalid JSON");
+      throw new Error("Gemini returned invalid JSON");
     }
 
     const valid = validateQuestions(parsed, level);
@@ -302,7 +313,7 @@ export const generateQuestionsWithAI = async (subject, difficulty, count = 10) =
 
     return { questions: shuffleArray(valid), usedAI: true };
   } catch (err) {
-    console.error("[QuestionGenerator] Groq API failed, using local fallback:", err.message);
+    console.error("[QuestionGenerator] Gemini API failed, using local fallback:", err.message);
     return { questions: getLocalFallback(subject, difficulty), usedAI: false };
   }
 };
@@ -312,8 +323,8 @@ export const generateQuestionsWithAI = async (subject, difficulty, count = 10) =
  * Each player gets a shuffled slice of `count` questions.
  * @returns {Promise<[object[], object[]]>}
  */
-export const buildAIQuestionBank = async (subject, difficulty, count = 10) => {
-  const { questions, usedAI } = await generateQuestionsWithAI(subject, difficulty, count * 2);
+export const buildAIQuestionBank = async (subject, difficulty, count = 10, historyContext = "") => {
+  const { questions, usedAI } = await generateQuestionsWithAI(subject, difficulty, count * 2, historyContext);
 
   // Give each player their own shuffled set
   const p1 = shuffleArray([...questions]).slice(0, count).map((q) => ({
